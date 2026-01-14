@@ -107,6 +107,8 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 	cmd.AddCommand(newCmd())
 	cmd.AddCommand(shellCmd())
 	cmd.AddCommand(startCmd())
+	cmd.AddCommand(stopCmd())
+
 	root.cmd = cmd
 	return root
 }
