@@ -105,6 +105,7 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 	cmd.PersistentFlags().BoolVar(&root.debug, "debug", false, "Enable debug mode")
 
 	cmd.AddCommand(newCmd())
+	cmd.AddCommand(shellCmd())
 	root.cmd = cmd
 	return root
 }
