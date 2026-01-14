@@ -1,0 +1,24 @@
+{
+  "name": "lsw",
+  "build": {
+    "dockerfile": "Dockerfile.ubuntu"
+  },
+
+  "overrideCommand": false,
+  "runArgs": [
+    "--privileged",
+    "--cgroupns=host",
+    "--tmpfs",
+    "/run",
+    "--tmpfs",
+    "/tmp"
+  ],
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "postCreateCommand": "sudo incus admin init --auto",
+  "forwardPorts": [6000],
+  "containerEnv": {
+    "INCUS_ADMIN": "1"
+  }
+}

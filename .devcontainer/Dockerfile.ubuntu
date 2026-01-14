@@ -1,0 +1,65 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV container=docker
+STOPSIGNAL SIGRTMIN+3
+
+# Update and install basic tools
+# Added 'lsb-release' because it is required for the Zabbly repo setup command
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    lsb-release \
+    systemd \
+    systemd-sysv \
+    sudo \
+    git \
+    curl \
+    nano \
+    procps \
+    iptables \
+    iproute2 \
+    dnsmasq \
+    socat \
+    && add-apt-repository universe \
+    && apt-get update
+
+# Add Zabbly Repo AND Install Incus + VM tools
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/zabbly.asc] https://pkgs.zabbly.com/incus/stable $(lsb_release -cs) main" > /etc/apt/sources.list.d/zabbly-incus-stable.list \
+    && apt-get update \
+    && apt-get install -y \
+    incus \
+    qemu-system \
+    ovmf \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Systemd for Container
+RUN systemctl mask \
+    systemd-remount-fs.service \
+    dev-hugepages.mount \
+    sys-fs-fuse-connections.mount \
+    systemd-logind.service \
+    getty.target \
+    console-getty.service
+
+# Create Dev User (Removes default ubuntu user first)
+ARG USERNAME=dev
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN userdel -r ubuntu || true \
+    && groupdel ubuntu || true \
+    && groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/bash \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Add user to incus-admin group
+RUN usermod -aG incus-admin $USERNAME
+
+# Enable Incus service
+RUN systemctl enable incus
+
+CMD [ "/sbin/init" ]
