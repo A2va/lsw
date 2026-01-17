@@ -2,6 +2,7 @@ package v2
 
 import (
 	"fmt"
+	"os"
 	"path"
 
 	"github.com/A2va/lsw/pkg/backend"
@@ -70,7 +71,10 @@ func createSoftwareISO(winfspPath string, openSSHPath string) error {
 		gorecurcopy.Copy(winfspPath, path.Join(tmpDir, "winfsp.msi"))
 		gorecurcopy.CopyDirectory(openSSHPath, openSSHtmpDir)
 		generateISO(tmpDir, isoPath, "SOFTWARE")
+
+		os.RemoveAll(tmpDir)
 	}
+
 	return nil
 }
 
