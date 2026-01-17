@@ -68,11 +68,11 @@ function Install-WinFSP {
         Write-Warning "WinFSP installer not found."; return
     }
 
-    $msiPath = Get-ChildItem -Path "$($drive):\winfsp-*.msi" | Select-Object -First 1
+    $msiPath = Get-ChildItem -Path "$($drive):\winfsp.msi" | Select-Object -First 1
     Write-Host "Installing WinFSP from $($msiPath.FullName)..."
 
     # INSTALLLEVEL=1000 ensures all features (including FUSE and Developer tools) are installed
-    $arguments = "/i `"$($msiPath.FullName)`" /qn /norestart INSTALLLEVEL=1000"
+    $arguments = "/i `"$($msiPath)`" /qn /norestart INSTALLLEVEL=1000"
 
     Start-Process "msiexec.exe" -ArgumentList $arguments -Wait
     Write-Host "WinFSP installation complete."
@@ -82,7 +82,7 @@ Install-VirtioTools
 Install-OpenSSH
 Install-WinFSP
 
-# 9. Final Shutdown
+# Final Shutdown
 Write-Output "Setup complete. Shutting down..."
 Start-Sleep -Seconds 10
 shutdown.exe /s /t 0 /f
