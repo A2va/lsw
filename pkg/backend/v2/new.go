@@ -254,7 +254,7 @@ func sendMonitorKeys(key string, monitorAddr string, count int) {
 	}
 	defer conn.Close()
 
-	for range 5 {
+	for range count {
 		_, err := fmt.Fprintf(conn, "sendkey %s\n", key)
 		if err != nil {
 			log.Debug("Error during sendkey", "err", err)
