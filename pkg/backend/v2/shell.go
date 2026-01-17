@@ -65,7 +65,9 @@ func Shell(bottle config.Bottle) error {
 
 	username := os.Getenv("USER")
 
-	cmd := exec.Command("ssh", username+"@"+idAddr)
+	// StrictHostKeyChecking is available from OpenSSH 7.6+, so might need to come back later to it and add
+	// -o StrictHostKeyChecking=no to support older version
+	cmd := exec.Command("ssh", username+"@"+idAddr, "-o StrictHostKeyChecking=accept-new")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
