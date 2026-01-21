@@ -51,18 +51,17 @@ This command downloads all backend-specific dependencies *without* creating a bo
 ### Windows ISO Requirement
 
 > [!IMPORTANT]  
-> The Windows ISO cannot yet be downloaded automatically. 
+> The Windows ISO cannot yet be downloaded automatically.  
+> You must manually download a Windows ISO (currently tested with [Windows Server 23H2, no GUI](https://massgrave.dev/windows-server-links#windows-server-23h2-no-gui))  
+> Place the ISO at one of the following locations:  
+> * `~/.cache/lsw/downloads/windows-server.iso`  
+> * `$XDG_CACHE_HOME/lsw/downloads/windows-server.iso`  
+> 
+> Make sure the filename is exactly:  
+> ```
+> windows-server.iso
+> ```
 
-You must manually download a Windows ISO (currently tested with [Windows Server 23H2, no GUI](https://massgrave.dev/windows-server-links#windows-server-23h2-no-gui))
-
-Place the ISO at one of the following locations:
-* `~/.cache/lsw/downloads/windows-server.iso`
-* `$XDG_CACHE_HOME/lsw/downloads/windows-server.iso`
-
-Make sure the filename is exactly:
-```
-windows-server.iso
-```
 
 ## Development
 
