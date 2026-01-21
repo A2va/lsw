@@ -14,9 +14,10 @@ var cfg Config
 var v Version
 
 type Version struct {
-	Version string
-	Commit  string
-	Date    string
+	Version     string
+	Commit      string
+	ShortCommit string
+	Date        string
 }
 
 type Config struct {
@@ -121,8 +122,10 @@ func SetVersion(versionCmd string) {
 	}
 
 	var commit string
+	var shortCommit string
 	if len(parts) > 1 && strings.HasPrefix(parts[1], "commit: ") {
 		commit = strings.TrimPrefix(parts[1], "commit: ")
+		shortCommit = commit[:7]
 	}
 
 	var date string
@@ -130,7 +133,7 @@ func SetVersion(versionCmd string) {
 		date = strings.TrimPrefix(parts[2], "date: ")
 	}
 
-	v = Version{Commit: commit, Date: date, Version: version}
+	v = Version{Commit: commit, ShortCommit: shortCommit, Date: date, Version: version}
 }
 
 func GetVersion() Version {
