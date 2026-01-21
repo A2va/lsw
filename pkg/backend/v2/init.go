@@ -30,7 +30,7 @@ func downloadVirtio() (string, error) {
 
 func downloadUnattendAssets() error {
 	version := config.GetVersion()
-	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/deepface-rs/%s/autounattend", version.Commit)
+	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/autounattend", version.Commit)
 	_, err := backend.DownloadFileIfNeeded(url+"/autounattend.xml", "autounattend.xml")
 	if err != nil {
 		return err
