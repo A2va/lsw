@@ -25,6 +25,8 @@ type Config struct {
 	Bottles        []Bottle `toml:"bottles"`
 	DefaultBackend string   `toml:"default_backend"`
 	DefaultBottle  string   `toml:"default_bottle"`
+	// Store the first found provider in case a user install another later
+	DefaultV1Provider string `toml:"default_v1_provider"`
 }
 
 // A bottle is a single unit for representing a single instance of windows with it's specific set of congiuration and software
@@ -32,7 +34,8 @@ type Config struct {
 type Bottle struct {
 	Name string `toml:"name"`
 	// v1 or v2
-	Version string `toml:"version"`
+	Version    string `toml:"version"`
+	V1Provider string `toml:"v1_provider"`
 	// mounted drives
 	//
 	// the plain text password for a v2 vm
@@ -77,6 +80,7 @@ func CheckAndLoad() error {
 
 	cfg.Bottles = []Bottle{}
 	cfg.DefaultBackend = "v2"
+	cfg.DefaultV1Provider = ""
 
 	if _, err := toml.NewDecoder(f).Decode(&cfg); err != nil {
 		return err
