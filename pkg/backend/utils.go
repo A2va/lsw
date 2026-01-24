@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 )
 
@@ -190,4 +191,28 @@ func CreateAllCacheDirectories() (string, error) {
 	}
 
 	return dir, nil
+}
+
+func GetBottle(name string) (config.Bottle, bool) {
+	cfg := config.Get()
+
+	var bottleName string
+	if name == "" {
+		bottleName = name
+	} else {
+		bottleName = cfg.DefaultBottle
+	}
+
+	var bottle config.Bottle
+	found := false
+
+	for _, b := range cfg.Bottles {
+		if b.Name == bottleName {
+			bottle = b
+			found = true
+			break
+		}
+	}
+
+	return bottle, found
 }
