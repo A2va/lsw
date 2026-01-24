@@ -92,7 +92,7 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 				log.Fatal("Error loading config file", "err", err)
 			}
 
-			config.SetVersion(cmd.Version)
+			config.SetVersion(cmd.Version, root.debug)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			err := config.Save()

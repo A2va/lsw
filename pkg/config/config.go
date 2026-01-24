@@ -18,6 +18,7 @@ type Version struct {
 	Commit      string
 	ShortCommit string
 	Date        string
+	DebugFlag   bool
 }
 
 type Config struct {
@@ -113,7 +114,13 @@ func Get() *Config {
 	return &cfg
 }
 
-func SetVersion(versionCmd string) {
+func SetVersion(versionCmd string, debugFlag bool) {
+	// Placeholder when the executable is not built by goreleaser
+	if versionCmd == "" {
+		v = Version{Version: "dev", Commit: "dev", ShortCommit: "dev", DebugFlag: debugFlag}
+		return
+	}
+
 	fullVersion := versionCmd
 	parts := strings.Split(fullVersion, "\n")
 	version := parts[0]
@@ -133,7 +140,7 @@ func SetVersion(versionCmd string) {
 		date = strings.TrimPrefix(parts[2], "date: ")
 	}
 
-	v = Version{Commit: commit, ShortCommit: shortCommit, Date: date, Version: version}
+	v = Version{Version: version, Commit: commit, ShortCommit: shortCommit, Date: date, DebugFlag: debugFlag}
 }
 
 func GetVersion() Version {
