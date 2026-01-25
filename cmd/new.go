@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/A2va/lsw/pkg/backend"
+	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/spf13/cobra"
@@ -34,28 +35,32 @@ func autoName(cfg *config.Config) string {
 	return newName(names)
 }
 
-// func newV1Cmd() *cobra.Command {
-// 	cmd := &cobra.Command{
-// 		Use:   "v1",
-// 		Short: "Create a bottle using v1 backend",
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			cfg := config.Get()
+func newV1Cmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "v1",
+		Short: "Create a bottle using v1 backend",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.Get()
 
-// 			name, _ := cmd.Flags().GetString("name")
-// 			if name == "" {
-// 				name = autoName(cfg)
-// 			}
+			name, _ := cmd.Flags().GetString("name")
+			if name == "" {
+				name = autoName(cfg)
+			}
 
-// 			return backendV1.New(backend.NewArgument{
-// 				Name: name,
-// 			})
-// 		},
-// 	}
+			init, _ := cmd.Flags().GetBool("init")
+			if init {
+				v1.Init()
+				return nil
+			}
 
-// 	// v1-specific flags (if any)
+			return nil
+		},
+	}
 
-// 	return cmd
-// }
+	// v1-specific flags (if any)
+
+	return cmd
+}
 
 func newV2Cmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -67,6 +72,12 @@ func newV2Cmd() *cobra.Command {
 			name, _ := cmd.Flags().GetString("name")
 			if name == "" {
 				name = autoName(cfg)
+			}
+
+			init, _ := cmd.Flags().GetBool("init")
+			if init {
+				v2.Init()
+				return nil
 			}
 
 			ram, _ := cmd.Flags().GetString("ram")
@@ -109,6 +120,7 @@ func newCmd() *cobra.Command {
 	cmd.PersistentFlags().StringP("name", "n", "", "Define a name for the bottle, if not provided an automatic name will be given.")
 
 	cmd.AddCommand(newV2Cmd())
+	cmd.AddCommand(newV1Cmd())
 
 	return cmd
 }

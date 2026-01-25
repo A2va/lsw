@@ -7,7 +7,7 @@ import (
 )
 
 // Find the first available provider
-func findAvailableProvider() string {
+func findFirstAvailableProvider() string {
 	binaries := []string{"docker", "podman"}
 	var selectedBin string
 
@@ -28,7 +28,7 @@ func getProvider(bottle config.Bottle) string {
 
 	cfg := config.Get()
 	if cfg.DefaultV1Provider == "" {
-		provider := findAvailableProvider()
+		provider := findFirstAvailableProvider()
 		cfg.DefaultV1Provider = provider
 		return provider
 	}
