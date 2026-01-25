@@ -197,10 +197,10 @@ func GetBottle(name string) (config.Bottle, bool) {
 	cfg := config.Get()
 
 	var bottleName string
-	if name == "" {
-		bottleName = name
-	} else {
+	if len(name) >= 1 {
 		bottleName = cfg.DefaultBottle
+	} else {
+		bottleName = name
 	}
 
 	var bottle config.Bottle

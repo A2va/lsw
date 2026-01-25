@@ -53,7 +53,7 @@ func newV1Cmd() *cobra.Command {
 				return nil
 			}
 
-			return nil
+			return v1.New(name)
 		},
 	}
 
