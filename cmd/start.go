@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/spf13/cobra"
@@ -32,8 +33,9 @@ func startCmd() *cobra.Command {
 
 			if bottle.Version == "v2" {
 				return v2.Start(bottleName)
+			} else {
+				return v1.Start(bottle)
 			}
-			return nil
 		},
 	}
 	return cmd
