@@ -7,13 +7,48 @@ import (
 	"os"
 
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/charmbracelet/log"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
 )
 
+func attachMethod(c *client.Client, containerID string) (client.HijackedResponse, error) {
+	res, err := c.ContainerAttach(context.Background(), containerID, client.ContainerAttachOptions{
+		Stream: true,
+		Stdin:  true,
+		Stdout: true,
+	})
+	if err != nil {
+		return client.HijackedResponse{}, err
+	}
+
+	res.HijackedResponse.Conn.Write([]byte("\r"))
+	return res.HijackedResponse, nil
+}
+
+func execMethod(c *client.Client, containerID string) (client.HijackedResponse, error) {
+	execConfig := client.ExecCreateOptions{
+		Cmd:          []string{"wine", "cmd"},
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		TTY:          true,
+	}
+
+	execIDResp, err := c.ExecCreate(context.Background(), containerID, execConfig)
+	if err != nil {
+		return client.HijackedResponse{}, err
+	}
+
+	attachResp, err := c.ExecAttach(context.Background(), execIDResp.ID, client.ExecAttachOptions{
+		TTY: true,
+	})
+	if err != nil {
+		return client.HijackedResponse{}, err
+	}
+	return attachResp.HijackedResponse, nil
+}
+
 func Shell(bottle config.Bottle) error {
-	log.Debug("access to shell")
 	c, err := client.New(client.FromEnv)
 	if err != nil {
 		return err
@@ -24,16 +59,12 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	stream, err := c.ContainerAttach(context.Background(), containerID, client.ContainerAttachOptions{
-		Stream: true,
-		Stdin:  true,
-		Stdout: true,
-	})
+	res, err := execMethod(c, containerID)
+	// res, err := attachMethod(c, containerID)
 	if err != nil {
 		return err
 	}
-
-	defer stream.Close()
+	defer res.Close()
 
 	fd := os.Stdin.Fd()
 	if term.IsTerminal(fd) {
@@ -48,12 +79,12 @@ func Shell(bottle config.Bottle) error {
 	outputDone := make(chan error)
 
 	go func() {
-		_, err := io.Copy(os.Stdout, stream.Reader)
+		_, err := io.Copy(os.Stdout, res.Reader)
 		outputDone <- err
 	}()
 
 	go func() {
-		_, err := io.Copy(stream.Conn, os.Stdin)
+		_, err := io.Copy(res.Conn, os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "stdin copy error: %v\n", err)
 		}
