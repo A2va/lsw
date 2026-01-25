@@ -90,7 +90,7 @@ type ContainerMigration struct {
 func pruneOldVersions(c *client.Client) (ContainerMigration, error) {
 	f := make(client.Filters).Add("reference", "lsw-v1:*")
 
-	res, err := c.ImageList(context.Background(), client.ImageListOptions{Filters: f})
+	res, err := c.ImageList(context.Background(), client.ImageListOptions{All: true, Filters: f})
 	if err != nil {
 		return ContainerMigration{}, nil
 	}
@@ -127,7 +127,7 @@ func pruneOldVersions(c *client.Client) (ContainerMigration, error) {
 			log.Debug("old image found", "id", image.ID)
 
 			f := make(client.Filters).Add("ancestor", image.ID)
-			res, err := c.ContainerList(context.Background(), client.ContainerListOptions{Filters: f, All: true})
+			res, err := c.ContainerList(context.Background(), client.ContainerListOptions{All: true, Filters: f})
 			if err != nil {
 				return ContainerMigration{}, err
 			}
