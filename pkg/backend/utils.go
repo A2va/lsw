@@ -198,10 +198,12 @@ func GetBottle(name string) (config.Bottle, bool) {
 
 	var bottleName string
 	if len(name) >= 1 {
-		bottleName = cfg.DefaultBottle
-	} else {
 		bottleName = name
+	} else {
+		bottleName = cfg.DefaultBottle
 	}
+
+	log.Debug("bottle name", name)
 
 	var bottle config.Bottle
 	found := false
