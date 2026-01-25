@@ -24,30 +24,17 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	execConfig := client.ExecCreateOptions{
-		Cmd:          []string{"wine", "cmd"},
-		AttachStdin:  true,
-		AttachStdout: true,
-		AttachStderr: true,
-		TTY:          true,
-	}
-
-	execIDResp, err := c.ExecCreate(context.Background(), containerID, execConfig)
-	if err != nil {
-		panic(fmt.Errorf("failed to create exec: %v", err))
-	}
-
-	attachResp, err := c.ExecAttach(context.Background(), execIDResp.ID, client.ExecAttachOptions{
-		TTY: true,
+	stream, err := c.ContainerAttach(context.Background(), containerID, client.ContainerAttachOptions{
+		Stream: true,
+		Stdin:  true,
+		Stdout: true,
 	})
 	if err != nil {
-		panic(fmt.Errorf("failed to attach to exec: %v", err))
+		return err
 	}
-	defer attachResp.Close()
 
-	// Set up the local terminal for interactive use (Raw Mode)
-	// This ensures that Ctrl+C, arrows, etc., are passed to the container
-	// instead of handled by your local shell.
+	defer stream.Close()
+
 	fd := os.Stdin.Fd()
 	if term.IsTerminal(fd) {
 		oldState, err := term.MakeRaw(fd)
@@ -58,25 +45,20 @@ func Shell(bottle config.Bottle) error {
 		defer term.RestoreTerminal(fd, oldState)
 	}
 
-	// Stream Input/Output
-	// We use a channel to know when the remote command has finished.
 	outputDone := make(chan error)
 
-	// Copy container output -> local stdout
 	go func() {
-		_, err := io.Copy(os.Stdout, attachResp.Reader)
+		_, err := io.Copy(os.Stdout, stream.Reader)
 		outputDone <- err
 	}()
 
-	// Copy local stdin -> container input
 	go func() {
-		_, err := io.Copy(attachResp.Conn, os.Stdin)
+		_, err := io.Copy(stream.Conn, os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "stdin copy error: %v\n", err)
 		}
 	}()
 
-	// Wait for the output stream to finish (which means the command exited)
 	<-outputDone
 
 	return nil
