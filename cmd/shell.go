@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/A2va/lsw/pkg/backend"
+	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
-	"github.com/A2va/lsw/pkg/config"
-	log "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
@@ -17,27 +17,8 @@ func shellCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.Get()
+			bottle, found := backend.GetBottle(args[0])
 
-			var bottleName string
-			if len(args) >= 1 {
-				bottleName = args[0]
-			} else {
-				bottleName = cfg.DefaultBottle
-			}
-
-			var bottle config.Bottle
-			found := false
-
-			for _, b := range cfg.Bottles {
-				if b.Name == bottleName {
-					bottle = b
-					found = true
-					break
-				}
-			}
-
-			log.Debug("found", "found", found)
 			if !found {
 				return fmt.Errorf("not found the bottle")
 			}
@@ -50,8 +31,9 @@ func shellCmd() *cobra.Command {
 
 			if bottle.Version == "v2" {
 				return v2.Shell(bottle)
+			} else {
+				return v1.Shell(bottle)
 			}
-			return nil
 		},
 	}
 	cmd.PersistentFlags().Bool("askpass", false, "Used for an SSH connection")
