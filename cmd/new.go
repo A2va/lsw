@@ -3,34 +3,52 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/A2va/lsw/pkg/backend"
 	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
+	log "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
+// Give a new name to a bottle, it only works if the existing names startin with win are in order (and they should be)
 func newName(names []string) string {
-	count := 0
-	for _, name := range names {
-		if strings.HasPrefix(name, "win") {
-			count++
+	extractNum := func(name string) int {
+		s := strings.Split(name, "-")
+
+		if len(s) >= 2 {
+			n, err := strconv.ParseInt(s[1], 10, 0)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return int(n)
+		} else {
+			return 0
 		}
 	}
+	num := 0
 
-	if count == 0 {
+	for idx, name := range names {
+		if extractNum(name) != idx {
+			num = idx + 1
+		}
+	}
+	if num == 0 {
 		return "win"
 	} else {
-		return fmt.Sprintf("win-%d", count)
+		return fmt.Sprintf("win-%d", num)
 	}
 }
 
 func autoName(cfg *config.Config) string {
 	names := make([]string, 0, len(cfg.Bottles))
 	for _, b := range cfg.Bottles {
-		names = append(names, b.Name)
+		if strings.HasPrefix("win") {
+			names = append(names, b.Name)
+		}
 	}
 	return newName(names)
 }
