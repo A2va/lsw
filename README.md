@@ -63,7 +63,7 @@ This command downloads all backend-specific dependencies *without* creating a bo
 > ```
 
 
-## Development
+# Development
 
 For development, it’s best to use a devcontainer, for that I recommend using [devpod](https://github.com/loft-sh/devpod).
 
@@ -83,7 +83,7 @@ devpod ssh .
 
 If you got an error because the incus network `incusbr0` is not created run `sudo incus admin init --auto`
 
-# VM Debugging
+## VM Debugging
 
 A helper script named `connect-vm.sh` is provided to open a VM using virt-viewer.
 
