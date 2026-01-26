@@ -70,7 +70,7 @@ func CheckAndLoad() error {
 		return fmt.Errorf("Error creating config directory [%v]", err)
 	}
 
-	log.Debug("Config directory is", "dir", confDir)
+	log.Debug("config directory is", "dir", confDir)
 	f, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE, 0664)
 	if err != nil && !os.IsNotExist(err) {
 		return err

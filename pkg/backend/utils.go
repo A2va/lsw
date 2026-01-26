@@ -101,7 +101,7 @@ func downloadFile(url string, filepath string) error {
 		return err
 	}
 
-	log.Debug("Download the file", "url", url, "path", filepath)
+	log.Debug("download file", "url", url, "path", filepath)
 	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {

@@ -22,6 +22,8 @@ func getContainerID(c *client.Client, name string) (string, error) {
 }
 
 func Start(bottle config.Bottle) error {
+	log.Debug("start container using docker provider", "name", bottle.Name)
+
 	c, err := client.New(client.FromEnv)
 	if err != nil {
 		return err
@@ -32,6 +34,7 @@ func Start(bottle config.Bottle) error {
 		return err
 	}
 
+	log.Debug("start v1 bottle", "name", bottle.Name)
 	_, err = c.ContainerStart(context.Background(), containerID, client.ContainerStartOptions{})
 	if err != nil {
 		return err

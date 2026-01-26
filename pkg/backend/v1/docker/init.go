@@ -43,7 +43,7 @@ func getDockerfile() (string, error) {
 		dockerfilePath = path.Join(cache, "downloads", "Dockerfile.v1")
 	}
 
-	log.Debug("File path", "dockerfile", dockerfilePath)
+	log.Debug("file path", "dockerfile", dockerfilePath)
 
 	return dockerfilePath, nil
 }
@@ -135,7 +135,7 @@ func pruneOldVersions(c *client.Client) (ContainerMigration, error) {
 			// It should be safe to delete the container since we use volume to store data
 			containers := res.Items
 			for _, container := range containers {
-				log.Debug("containers runing on old image", "id", container.ID)
+				log.Debug("containers running on old image", "id", container.ID)
 
 				res, err := c.ContainerInspect(context.Background(), container.ID, client.ContainerInspectOptions{})
 				if err != nil {
@@ -192,8 +192,6 @@ func buildImage(c *client.Client) error {
 		remove = false
 	}
 
-	log.Debug("build image with conf:", "nocache", noCache, "remove", remove, "tag", targetTag)
-
 	buildOptions := client.ImageBuildOptions{
 		NoCache: noCache,
 		Remove:  remove,
@@ -202,7 +200,7 @@ func buildImage(c *client.Client) error {
 
 	dockerfilePath, err := getDockerfile()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	buildContext, err := createBuildContext(dockerfilePath)
@@ -210,36 +208,40 @@ func buildImage(c *client.Client) error {
 		return err
 	}
 
+	log.Debug("build image with conf:", "nocache", noCache, "remove", remove, "tag", targetTag)
 	res, err := c.ImageBuild(context.Background(), buildContext, buildOptions)
 	if err != nil {
 		return err
 	}
 	defer res.Body.Close()
 
-	// Ensure the build actually finished/succeeded by reading the output
-	// If you don't read the body, the build might be cancelled or hang
-	// TODO Logs the build output (at least in debug mode)
 	_, err = io.Copy(io.Discard, res.Body)
-	// _, err = io.Copy(os.Stdout, res.Body)
+	if version.Version == "dev" {
+		_, err = io.Copy(os.Stdout, res.Body)
+	} else {
+		_, err = io.Copy(io.Discard, res.Body)
+	}
+
 	return nil
 }
 
 func Init() {
+	log.Debug("init docker provider")
 
 	c, err := client.New(client.FromEnv)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer c.Close()
 
 	migration, err := pruneOldVersions(c)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	err = buildImage(c)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	if migration.OldImagesWasRemoved {

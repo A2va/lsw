@@ -44,7 +44,7 @@ func getDockerfile() (string, error) {
 		dockerfilePath = path.Join(cache, "downloads", "Dockerfile.v1")
 	}
 
-	log.Debug("File path", "dockerfile", dockerfilePath)
+	log.Debug("file path", "dockerfile", dockerfilePath)
 
 	return dockerfilePath, nil
 }
@@ -105,7 +105,7 @@ func pruneOldVersions(c context.Context) (ContainerMigration, error) {
 			}
 
 			for _, container := range containerss {
-				log.Debug("containers runing on old image", "id", container.ID)
+				log.Debug("containers running on old image", "id", container.ID)
 
 				res, err := containers.Inspect(c, container.ID, &containers.InspectOptions{})
 				if err != nil {
@@ -186,14 +186,16 @@ func buildImage(c context.Context) error {
 }
 
 func Init() {
+	log.Debug("init podman provider")
+
 	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	migration, err := pruneOldVersions(c)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	buildImage(c)

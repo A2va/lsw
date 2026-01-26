@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/charmbracelet/log"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
 )
@@ -50,6 +51,8 @@ func execMethod(c *client.Client, containerID string) (client.HijackedResponse, 
 }
 
 func Shell(bottle config.Bottle) error {
+	log.Debug("shell into container using docker provider", "name", bottle.Name)
+
 	c, err := client.New(client.FromEnv)
 	if err != nil {
 		return err
@@ -71,7 +74,7 @@ func Shell(bottle config.Bottle) error {
 	if term.IsTerminal(fd) {
 		oldState, err := term.MakeRaw(fd)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		// Restore the terminal to normal when we exit
 		defer term.RestoreTerminal(fd, oldState)

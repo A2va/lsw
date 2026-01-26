@@ -56,7 +56,7 @@ func downloadWindowsIso() (string, error) {
 func createSoftwareISO(winfspPath string, openSSHPath string) error {
 	cachedir, err := backend.GetCacheDir()
 	if err != nil {
-		log.Fatal("Cannot get cache directory")
+		log.Fatal("cannot get cache directory")
 	}
 	log.Debug(openSSHPath)
 
@@ -82,31 +82,31 @@ func createSoftwareISO(winfspPath string, openSSHPath string) error {
 func Init() {
 	openSSHPath, err := downloadOpenSSH()
 	if err != nil {
-		log.Fatal("Cannot download OpenSSH")
+		log.Fatal("cannot download OpenSSH")
 	}
 
 	winfspPath, err := downloadWinFsp()
 	if err != nil {
-		log.Fatal("Cannot download WinFsp")
+		log.Fatal("cannot download WinFsp")
 	}
 
 	_, err = downloadVirtio()
 	if err != nil {
-		log.Fatal("Cannot download Virtio")
+		log.Fatal("cannot download Virtio")
 	}
 
 	err = downloadUnattendAssets()
 	if err != nil {
-		log.Fatal("Cannot download Unattend assets")
+		log.Fatal("cannot download Unattend assets")
 	}
 
 	_, err = downloadWindowsIso()
 	if err != nil {
-		log.Debug("Cannot download Windows ISO, this is normal for now")
+		log.Debug("cannot download Windows ISO, this is normal for now")
 	}
 
 	err = createSoftwareISO(winfspPath, openSSHPath)
 	if err != nil {
-		log.Fatal("Cannot create software ISO")
+		log.Fatal("cannot create software ISO")
 	}
 }

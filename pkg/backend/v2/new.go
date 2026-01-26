@@ -160,18 +160,18 @@ func copyUnattendAssetsToDir(d string) error {
 	copyToDirFromCache := func(cachedir string, dir string, file string) {
 		err := backend.CreateDir(path.Join(dir, path.Dir(file)), 0755)
 		if err != nil {
-			log.Fatal("Error creating directory", "err", err)
+			log.Fatal("error creating directory", "err", err)
 		}
 
 		dir = path.Join(dir, file)
 		cachedir = path.Join(cachedir, file)
 		err = gorecurcopy.Copy(cachedir, dir)
 		if err != nil {
-			log.Fatal("Error copying file", "err", err)
+			log.Fatal("error copying file", "err", err)
 		}
 	}
 
-	log.Debug("Temp directory", "dir", d)
+	log.Debug("temp directory", "dir", d)
 
 	cache, err := backend.GetCacheDir()
 	if err != nil {
@@ -205,15 +205,15 @@ func createAutounattendISO(args backend.NewArgument) (string, error) {
 
 	err = copyUnattendAssetsToDir(tmpDir)
 	if err != nil {
-		log.Fatal("Error when copying assets to temporary directory", "err", err)
+		log.Fatal("error when copying assets to temporary directory", "err", err)
 	}
 
 	locale, err := detectLocale()
 	if err != nil {
-		log.Fatal("Error when calling localectl", "err", err)
+		log.Fatal("error when calling localectl", "err", err)
 	}
 
-	log.Debug("Windows layout", "locale", locale)
+	log.Debug("windows layout", "locale", locale)
 
 	config := map[string]string{
 		"Password":     args.Password,
@@ -246,10 +246,10 @@ func createAutounattendISO(args backend.NewArgument) (string, error) {
 
 // sendMonitorKeys dials the QEMU monitor and sends the key command
 func sendMonitorKeys(key string, monitorAddr string, count int) {
-	log.Debug("Action: Sending key to monitor", "key", key, "count", count)
+	log.Debug("action: sending key to monitor", "key", key, "count", count)
 	conn, err := net.DialTimeout("tcp", monitorAddr, 5*time.Second)
 	if err != nil {
-		log.Warn("Could not connect to QEMU monitor", "err", err)
+		log.Warn("could not connect to QEMU monitor", "err", err)
 		return
 	}
 	defer conn.Close()
@@ -257,7 +257,7 @@ func sendMonitorKeys(key string, monitorAddr string, count int) {
 	for range count {
 		_, err := fmt.Fprintf(conn, "sendkey %s\n", key)
 		if err != nil {
-			log.Debug("Error during sendkey", "err", err)
+			log.Debug("error during sendkey", "err", err)
 			return
 		}
 		time.Sleep(500 * time.Millisecond)
@@ -267,7 +267,8 @@ func sendMonitorKeys(key string, monitorAddr string, count int) {
 func New(arch string, args backend.NewArgument) error {
 	Init()
 
-	log.Debug("Instance name", "name", args.Name)
+	log.Debug("new bottle on v1 backend", "name", args.Name)
+
 	if arch != "amd64" {
 		log.Fatal("not supported architecture")
 	}
@@ -375,39 +376,40 @@ func New(arch string, args backend.NewArgument) error {
 	q := make(chan string)
 	listener, evt := eventHandler(c, args.Name, q)
 
-	log.Debug("Installing Windows Files")
+	log.Debug("installing Windows Files")
 	fmt.Print("\rStatus: [1/3] Installing Windows Files...           ")
 
 	ev := timeout(q, 8*time.Minute)
 	// Windows have taken more than 8 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
-		log.Debug("Missing first restart")
+		log.Debug("missing first restart")
 		return fmt.Errorf("failed to complete the first install step")
 	}
 
-	log.Debug("Configuring System Settings")
+	log.Debug("configuring System Settings")
 	fmt.Print("\rStatus: [2/3] Configuring System Settings...        ")
 
 	ev = timeout(q, 4*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
-		log.Debug("Missing second restart")
+		log.Debug("missing second restart")
 		return fmt.Errorf("failed to complete the second install step")
 	}
 
-	log.Debug("Finishing Setup & Scripts")
+	log.Debug("finishing Setup & Scripts")
 	fmt.Print("\rStatus: [3/3] Finishing Setup & Scripts...          ")
 
 	ev = timeout(q, 4*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-shutdown" {
-		log.Debug("Missing Shutdown")
+		log.Debug("missing Shutdown")
 		return fmt.Errorf("failed to shutdown at the end of the install")
 	}
 
 	listener.RemoveHandler(evt)
 	listener.Disconnect()
 
+	log.Debug("update config to add bottle")
 	cfg := config.Get()
 
 	// Update the config
@@ -441,14 +443,14 @@ func timeout(q <-chan string, d time.Duration) string {
 func removeDevice(c incus.InstanceServer, vmName string, device string) {
 	inst, etag, err := c.GetInstance(vmName)
 	if err != nil {
-		log.Fatal("Failed to fetch instance for cleanup", "err", err)
+		log.Fatal("failed to fetch instance for cleanup", "err", err)
 	}
 
 	delete(inst.Devices, device)
 
 	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
 	if err != nil {
-		log.Fatal("Cleanup failed", "err", err)
+		log.Fatal("cleanup failed", "err", err)
 	}
 	op.Wait()
 }
@@ -456,10 +458,10 @@ func removeDevice(c incus.InstanceServer, vmName string, device string) {
 func eventHandler(c incus.InstanceServer, vmName string, q chan<- string) (*incus.EventListener, *incus.EventTarget) {
 	listener, err := c.GetEvents()
 	if err != nil {
-		log.Fatal("Failed to connect to event stream", "err", err)
+		log.Fatal("failed to connect to event stream", "err", err)
 	}
 
-	log.Debug("Connected to event stream", "vm", vmName)
+	log.Debug("connected to event stream", "vm", vmName)
 
 	countRestart := 0
 
@@ -476,7 +478,7 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string) (*incu
 		// The Source for instance events is typically "/1.0/instances/<name>"
 		targetSource := fmt.Sprintf("/1.0/instances/%s", vmName)
 		if lifecycle.Source == targetSource {
-			log.Debug("Event", "time", time.Now().Format("15:04:05"), "action", lifecycle.Action)
+			log.Debug("event", "time", time.Now().Format("15:04:05"), "action", lifecycle.Action)
 
 			if lifecycle.Action == "instance-restarted" {
 				countRestart++
@@ -484,7 +486,7 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string) (*incu
 
 			if lifecycle.Action == "instance-restarted" && countRestart == 1 {
 				removeDevice(c, vmName, "install")
-				log.Debug("Install ISO removed.")
+				log.Debug("install ISO removed.")
 			}
 
 			if lifecycle.Action != "instance-updated" {
@@ -495,7 +497,7 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string) (*incu
 	})
 
 	if err != nil {
-		log.Fatal("Failed to add event handler", "err", err)
+		log.Fatal("failed to add event handler", "err", err)
 	}
 
 	return listener, evt

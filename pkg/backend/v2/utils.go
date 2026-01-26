@@ -47,7 +47,7 @@ func generateISO(sourceDir string, output string, label string) error {
 	// cmd.Stdout = os.Stdout
 	// cmd.Stderr = os.Stderr
 
-	log.Debug("Executing", "bin", selectedBin, "args", finalArgs)
+	log.Debug("executing", "bin", selectedBin, "args", finalArgs)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create iso")
 	}

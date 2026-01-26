@@ -4,10 +4,13 @@ import (
 	"github.com/A2va/lsw/pkg/backend/v1/docker"
 	"github.com/A2va/lsw/pkg/backend/v1/podman"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/charmbracelet/log"
 )
 
 func New(name string) error {
 	provider := getProvider(config.Bottle{})
+
+	log.Debug("new bottle on v1 backend", "name", name)
 
 	var err error
 	if provider == "docker" {
@@ -20,6 +23,7 @@ func New(name string) error {
 		return err
 	}
 
+	log.Debug("update config to add bottle")
 	cfg := config.Get()
 
 	// Update the config

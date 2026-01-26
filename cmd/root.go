@@ -17,7 +17,7 @@ import (
 func initLog(debug bool) {
 	logdir, err := backend.GetCacheDir()
 	if err != nil {
-		log.Fatalf("Cannot get cache directory: %v", err)
+		log.Fatalf("cannot get cache directory: %v", err)
 	}
 
 	logPath := filepath.Join(logdir, "logs", "lsw.log")
@@ -82,14 +82,14 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			_, err := backend.CreateAllCacheDirectories()
 			if err != nil {
-				log.Fatal("Error creating cache directories", "err", err)
+				log.Fatal("error creating cache directories", "err", err)
 			}
 			initLog(root.debug)
 
 			// check and load config after handlers are configured
 			err = config.CheckAndLoad()
 			if err != nil {
-				log.Fatal("Error loading config file", "err", err)
+				log.Fatal("error loading config file", "err", err)
 			}
 
 			config.SetVersion(cmd.Version, root.debug)
@@ -97,7 +97,7 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			err := config.Save()
 			if err != nil {
-				log.Error("Error loading config file", "err", err)
+				log.Error("error loading config file", "err", err)
 			}
 		},
 	}

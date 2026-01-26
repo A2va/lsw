@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/charmbracelet/log"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
@@ -19,7 +20,7 @@ func New(name string) error {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	version := config.GetVersion()
