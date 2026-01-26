@@ -12,8 +12,8 @@ import (
 	"github.com/moby/term"
 )
 
-func attachMethod(c *client.Client, containerID string) (client.HijackedResponse, error) {
-	res, err := c.ContainerAttach(context.Background(), containerID, client.ContainerAttachOptions{
+func attachMethod(c *client.Client, nameOrID string) (client.HijackedResponse, error) {
+	res, err := c.ContainerAttach(context.Background(), nameOrID, client.ContainerAttachOptions{
 		Stream: true,
 		Stdin:  true,
 		Stdout: true,
@@ -27,7 +27,7 @@ func attachMethod(c *client.Client, containerID string) (client.HijackedResponse
 	return res.HijackedResponse, nil
 }
 
-func execMethod(c *client.Client, containerID string) (client.HijackedResponse, error) {
+func execMethod(c *client.Client, nameOrID string) (client.HijackedResponse, error) {
 	execConfig := client.ExecCreateOptions{
 		Cmd:          []string{"wine", "cmd"},
 		AttachStdin:  true,
@@ -36,7 +36,7 @@ func execMethod(c *client.Client, containerID string) (client.HijackedResponse, 
 		TTY:          true,
 	}
 
-	execIDResp, err := c.ExecCreate(context.Background(), containerID, execConfig)
+	execIDResp, err := c.ExecCreate(context.Background(), nameOrID, execConfig)
 	if err != nil {
 		return client.HijackedResponse{}, err
 	}
@@ -58,13 +58,8 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	containerID, err := getContainerID(c, bottle.Name)
-	if err != nil {
-		return err
-	}
-
-	res, err := execMethod(c, containerID)
-	// res, err := attachMethod(c, containerID)
+	res, err := execMethod(c, bottle.Name)
+	// res, err := attachMethod(c, bottle.Name)
 	if err != nil {
 		return err
 	}

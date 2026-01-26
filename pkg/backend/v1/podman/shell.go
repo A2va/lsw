@@ -14,16 +14,16 @@ import (
 	"github.com/docker/docker/api/types/container"
 )
 
-func attachMethod(c context.Context, containerID string) error {
+func attachMethod(c context.Context, nameOrID string) error {
 	attachReady := make(chan bool)
-	err := containers.Attach(c, containerID, os.Stdin, os.Stdout, os.Stderr, attachReady, &containers.AttachOptions{})
+	err := containers.Attach(c, nameOrID, os.Stdin, os.Stdout, os.Stderr, attachReady, &containers.AttachOptions{})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func execMethod(c context.Context, containerID string) error {
+func execMethod(c context.Context, nameOrID string) error {
 	execConfig := handlers.ExecCreateConfig{
 		ExecOptions: container.ExecOptions{
 			Cmd:          []string{"wine", "cmd"},
@@ -33,7 +33,7 @@ func execMethod(c context.Context, containerID string) error {
 		},
 	}
 
-	execID, err := containers.ExecCreate(c, containerID, &execConfig)
+	execID, err := containers.ExecCreate(c, nameOrID, &execConfig)
 	if err != nil {
 		return err
 	}
@@ -58,10 +58,5 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	containerID, err := getContainerID(c, bottle.Name)
-	if err != nil {
-		return err
-	}
-
-	return execMethod(c, containerID)
+	return execMethod(c, bottle.Name)
 }
