@@ -21,6 +21,7 @@ func attachMethod(c *client.Client, containerID string) (client.HijackedResponse
 		return client.HijackedResponse{}, err
 	}
 
+	// Prompt is not displayed correctly without it
 	res.HijackedResponse.Conn.Write([]byte("\r"))
 	return res.HijackedResponse, nil
 }

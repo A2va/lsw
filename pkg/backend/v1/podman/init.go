@@ -215,6 +215,9 @@ func Init() {
 			}
 			s.Command = container.Config.Cmd
 			s.Entrypoint = container.Config.Entrypoint
+			s.Stdin = &container.Config.OpenStdin
+			s.Terminal = &container.Config.Tty
+
 			// s.UserNS = specgen.Namespace{
 			// 	NSMode: specgen.KeepID,
 			// }
