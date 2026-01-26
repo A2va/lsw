@@ -3,17 +3,18 @@ package v2
 import (
 	"fmt"
 
+	"github.com/A2va/lsw/pkg/config"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 )
 
-func Stop(name string) error {
+func Stop(bottle config.Bottle) error {
 	c, err := incus.ConnectIncusUnix("", nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
 	}
 
-	op, err := c.UpdateInstanceState(name, api.InstanceStatePut{Action: "stop", Timeout: -1}, "")
+	op, err := c.UpdateInstanceState(bottle.Name, api.InstanceStatePut{Action: "stop", Timeout: -1}, "")
 	if err != nil {
 		return fmt.Errorf("instance update failed: %w", err)
 	}

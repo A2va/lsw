@@ -31,7 +31,7 @@ func stopCmd() *cobra.Command {
 			}
 
 			if bottle.Version == "v2" {
-				return v2.Stop(bottleName)
+				return v2.Stop(bottle)
 			}
 			return nil
 		},
