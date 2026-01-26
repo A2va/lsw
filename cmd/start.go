@@ -24,9 +24,10 @@ func startCmd() *cobra.Command {
 
 			if bottle.Version == "v2" {
 				return v2.Start(bottle)
-			} else {
-				return v1.Start(bottle)
+			} else if bottle.Version == "v1" {
+				return v1.Stop(bottle)
 			}
+			return nil
 		},
 	}
 	return cmd

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/A2va/lsw/pkg/backend"
+	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/spf13/cobra"
 )
@@ -23,6 +24,8 @@ func stopCmd() *cobra.Command {
 
 			if bottle.Version == "v2" {
 				return v2.Stop(bottle)
+			} else if bottle.Version == "v1" {
+				return v1.Stop(bottle)
 			}
 			return nil
 		},
