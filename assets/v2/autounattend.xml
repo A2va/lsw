@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<unattend
+    xmlns="urn:schemas-microsoft-com:unattend"
+    xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>
+
+  <settings pass="windowsPE">
+    <component
+            name="Microsoft-Windows-International-Core-WinPE"
+            processorArchitecture="amd64"
+            publicKeyToken="31bf3856ad364e35"
+            language="neutral"
+            versionScope="nonSxS"
+        >
+      <SetupUILanguage>
+        <UILanguage>{{.UILanguage}}</UILanguage>
+      </SetupUILanguage>
+      <InputLocale>{{.InputLocale}}</InputLocale>
+      <SystemLocale>{{.SystemLocale}}</SystemLocale>
+      <UILanguage>{{.UILanguage}}</UILanguage>
+      <UserLocale>{{.UserLocale}}</UserLocale>
+    </component>
+
+    <component
+            name="Microsoft-Windows-PnpCustomizationsWinPE"
+            processorArchitecture="amd64"
+            publicKeyToken="31bf3856ad364e35"
+            language="neutral"
+            versionScope="nonSxS"
+        >
+           <DriverPaths>
+           <!-- Load the virtio drivers related to disks so that windows is able to install properly
+          The full installtion of virtio drivers take place in the setup script. Load both vioscsi and viostor drivers. -->
+               <PathAndCredentials wcm:action="add" wcm:keyValue="1">
+                   <Path>D:\vioscsi\w11\amd64</Path>
+               </PathAndCredentials>
+               <PathAndCredentials wcm:action="add" wcm:keyValue="2">
+                   <Path>E:\vioscsi\w11\amd64</Path>
+               </PathAndCredentials>
+               <PathAndCredentials wcm:action="add" wcm:keyValue="3">
+                   <Path>F:\vioscsi\w11\amd64</Path>
+               </PathAndCredentials>
+               <PathAndCredentials wcm:action="add" wcm:keyValue="4">
+                   <Path>D:\vioscsi\2k25\amd64</Path>
+               </PathAndCredentials>
+               <PathAndCredentials wcm:action="add" wcm:keyValue="5">
+                   <Path>E:\vioscsi\2k25\amd64</Path>
+               </PathAndCredentials>
+               <PathAndCredentials wcm:action="add" wcm:keyValue="6">
+                   <Path>F:\vioscsi\2k25\amd64</Path>
+               </PathAndCredentials>
+               <PathAndCredentials wcm:action="add" wcm:keyValue="7">
+                  <Path>D:\viostor\w11\amd64</Path>
+              </PathAndCredentials>
+              <PathAndCredentials wcm:action="add" wcm:keyValue="8">
+                  <Path>E:\viostor\w11\amd64</Path>
+              </PathAndCredentials>
+              <PathAndCredentials wcm:action="add" wcm:keyValue="9">
+                  <Path>F:\viostor\w11\amd64</Path>
+              </PathAndCredentials>
+              <PathAndCredentials wcm:action="add" wcm:keyValue="10">
+                  <Path>D:\viostor\2k25\amd64</Path>
+              </PathAndCredentials>
+              <PathAndCredentials wcm:action="add" wcm:keyValue="11">
+                  <Path>E:\viostor\2k25\amd64</Path>
+              </PathAndCredentials>
+              <PathAndCredentials wcm:action="add" wcm:keyValue="12">
+                  <Path>F:\viostor\2k25\amd64</Path>
+              </PathAndCredentials>
+           </DriverPaths>
+       </component>
+
+    <component
+            name="Microsoft-Windows-Setup"
+            processorArchitecture="amd64"
+            publicKeyToken="31bf3856ad364e35"
+            language="neutral"
+            versionScope="nonSxS"
+        >
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+        <FullName>Incus Admin</FullName>
+        <Organization>Incus</Organization>
+      </UserData>
+      <DiskConfiguration>
+        <Disk wcm:action="add">
+          <DiskID>0</DiskID>
+          <WillWipeDisk>true</WillWipeDisk>
+          <CreatePartitions>
+            <CreatePartition wcm:action="add">
+                <Order>1</Order>
+                <Type>EFI</Type>
+                <Size>100</Size>
+            </CreatePartition>
+            <CreatePartition wcm:action="add">
+                <Order>2</Order>
+                <Type>MSR</Type>
+                <Size>16</Size>
+            </CreatePartition>
+            <CreatePartition wcm:action="add">
+                <Order>3</Order>
+                <Type>Primary</Type>
+                <Extend>true</Extend>
+            </CreatePartition>
+          </CreatePartitions>
+          <ModifyPartitions>
+            <ModifyPartition wcm:action="add">
+                <Order>1</Order>
+                <PartitionID>1</PartitionID>
+                <Format>FAT32</Format>
+                <Label>System</Label>
+            </ModifyPartition>
+            <ModifyPartition wcm:action="add">
+                <Order>2</Order>
+                <PartitionID>3</PartitionID>
+                <Format>NTFS</Format>
+                <Label>Windows</Label>
+            </ModifyPartition>
+          </ModifyPartitions>
+        </Disk>
+        <WillShowUI>OnError</WillShowUI>
+      </DiskConfiguration>
+      <ImageInstall>
+        <OSImage>
+          <InstallFrom>
+            <MetaData wcm:action="add">
+            <Key>/image/index</Key>
+            <Value>1</Value>
+            </MetaData>
+          </InstallFrom>
+          <InstallTo>
+            <DiskID>0</DiskID>
+            <PartitionID>3</PartitionID>
+          </InstallTo>
+        </OSImage>
+      </ImageInstall>
+    </component>
+  </settings>
+
+  <settings pass="specialize">
+    <component
+            name="Microsoft-Windows-Shell-Setup"
+            processorArchitecture="amd64"
+            publicKeyToken="31bf3856ad364e35"
+            language="neutral"
+            versionScope="nonSxS"
+        >
+      <TimeZone>W. Europe Standard Time</TimeZone>
+    </component>
+    <component
+            name="Microsoft-Windows-Deployment"
+            processorArchitecture="amd64"
+            publicKeyToken="31bf3856ad364e35"
+            language="neutral"
+            versionScope="nonSxS"
+        >
+        <RunSynchronous>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <Description>Run Specialize Script</Description>
+                    <Path
+                    >powershell -NoProfile -ExecutionPolicy Bypass -Command "$drive = (Get-PSDrive | Where-Object { Test-Path \"$($_.Name):\scripts\specialize.ps1\" }).Name; if($drive) { powershell -File \"$($drive):\scripts\specialize.ps1\" }"</Path>
+                </RunSynchronousCommand>
+            </RunSynchronous>
+        </component>
+  </settings>
+
+  <settings pass="oobeSystem">
+    <component
+            name="Microsoft-Windows-Shell-Setup"
+            processorArchitecture="amd64"
+            publicKeyToken="31bf3856ad364e35"
+            language="neutral"
+            versionScope="nonSxS"
+        >
+      <!-- Automatically logs in once as Administrator to setup SS, drivers, ... -->
+      <AutoLogon>
+        <Password>
+            <Value>{{.Password}}</Value>
+            <PlainText>true</PlainText>
+        </Password>
+        <Enabled>true</Enabled>
+        <LogonCount>1</LogonCount>
+        <Username>Administrator</Username>
+      </AutoLogon>
+
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <NetworkLocation>Work</NetworkLocation>
+        <ProtectYourPC>3</ProtectYourPC>
+      </OOBE>
+
+      <UserAccounts>
+        <AdministratorPassword>
+          <Value>{{.Password}}</Value>
+          <PlainText>true</PlainText>
+        </AdministratorPassword>
+        <LocalAccounts>
+			<LocalAccount wcm:action="add">
+				<Name>admin</Name>
+				<DisplayName />
+				<Group>Administrators</Group>
+				<Password>
+				    <Value>{{.Password}}</Value>
+					<PlainText>true</PlainText>
+				</Password>
+			</LocalAccount>
+			<LocalAccount wcm:action="add">
+				<Name>{{.Username}}</Name>
+				<DisplayName />
+				<Group>Users</Group>
+				<Password>
+                    <Value>{{.Password}}</Value>
+					<PlainText>true</PlainText>
+				</Password>
+			</LocalAccount>
+		</LocalAccounts>
+      </UserAccounts>
+
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+            <Order>1</Order>
+            <CommandLine
+                    >powershell -NoProfile -ExecutionPolicy Bypass -Command "$drive = (Get-PSDrive | Where-Object { Test-Path \"$($_.Name):\scripts\setup.ps1\" }).Name; if($drive) { powershell -File \"$($drive):\scripts\setup.ps1\" }"</CommandLine>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+    </component>
+  </settings>
+</unattend>

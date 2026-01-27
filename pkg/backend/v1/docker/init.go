@@ -24,7 +24,7 @@ func getDockerfile() (string, error) {
 	log.Debug("get dockerfile")
 
 	version := config.GetVersion()
-	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/Dockerfile.v1", version.Commit)
+	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/v1/Dockerfile", version.Commit)
 
 	var dockerfilePath string
 	if version.Version == "dev" {

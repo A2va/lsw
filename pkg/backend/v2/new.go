@@ -146,7 +146,7 @@ func getUnattendXmlFile() (string, error) {
 	version := config.GetVersion()
 	if version.Version == "dev" {
 		wd, _ := os.Getwd()
-		return path.Join(wd, "autounattend", "autounattend.xml"), nil
+		return path.Join(wd, "assets", "v1", "autounattend.xml"), nil
 	}
 	cache, err := backend.GetCacheDir()
 	if err != nil {
@@ -182,7 +182,7 @@ func copyUnattendAssetsToDir(d string) error {
 	version := config.GetVersion()
 	if version.Version == "dev" {
 		wd, _ := os.Getwd()
-		wd = path.Join("autounattend")
+		wd = path.Join("assets", "v2")
 		// copyToDirFromCache(wd, d, "autounattend.xml")
 		copyToDirFromCache(wd, d, "scripts/setup.ps1")
 		copyToDirFromCache(wd, d, "scripts/specialize.ps1")
