@@ -20,6 +20,15 @@ import (
 	"github.com/plus3it/gorecurcopy"
 )
 
+type NewArgument struct {
+	Name     string
+	Ram      string
+	Disk     string
+	Cpus     string
+	Password string
+	Username string
+}
+
 type WindowsLocales struct {
 	InputLocale  string // Keyboard Layout (e.g., fr-CH)
 	SystemLocale string // The OS Language (e.g., en-US)
@@ -195,7 +204,7 @@ func copyUnattendAssetsToDir(d string) error {
 	return nil
 }
 
-func createAutounattendISO(args backend.NewArgument) (string, error) {
+func createAutounattendISO(args NewArgument) (string, error) {
 	tmpDir, err := os.MkdirTemp("", "lsw-autounattend")
 	if err != nil {
 		return "", err
@@ -264,7 +273,7 @@ func sendMonitorKeys(key string, monitorAddr string, count int) {
 	}
 }
 
-func New(arch string, args backend.NewArgument) error {
+func New(arch string, args NewArgument) error {
 	Init()
 
 	log.Debug("new bottle on v1 backend", "name", args.Name)

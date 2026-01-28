@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/A2va/lsw/pkg/backend"
 	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
@@ -104,7 +103,7 @@ func newV2Cmd() *cobra.Command {
 			password, _ := cmd.Flags().GetString("password")
 			user, _ := cmd.Flags().GetString("user")
 
-			return v2.New("amd64", backend.NewArgument{
+			return v2.New("amd64", v2.NewArgument{
 				Name:     name,
 				Ram:      ram,
 				Disk:     disk,
