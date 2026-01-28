@@ -46,7 +46,7 @@ func newName(names []string) string {
 func autoName(cfg *config.Config) string {
 	names := make([]string, 0, len(cfg.Bottles))
 	for _, b := range cfg.Bottles {
-		if strings.HasPrefix("win") {
+		if strings.HasPrefix(b.Name, "win") {
 			names = append(names, b.Name)
 		}
 	}
