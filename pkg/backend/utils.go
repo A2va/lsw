@@ -137,15 +137,23 @@ func DownloadFileIfNeeded(url string, file string) (string, error) {
 
 	filepath := path.Join(cachedir, "downloads", file)
 
+	isZip := false
+
+	finalFilepath := filepath
+
 	if path.Ext(filepath) == ".zip" {
-		filepath = strings.Replace(filepath, ".zip", "", 1)
+		isZip = true
+		finalFilepath = strings.Replace(filepath, ".zip", "", 1)
 	}
 
-	if !Exists(filepath) {
-		return filepath, downloadFile(url, filepath+".zip")
+	if !Exists(finalFilepath) {
+		if isZip {
+			filepath = finalFilepath + ".zip"
+		}
+		return finalFilepath, downloadFile(url, filepath)
 	}
 
-	return filepath, nil
+	return finalFilepath, nil
 }
 
 func Exists(path string) bool {
