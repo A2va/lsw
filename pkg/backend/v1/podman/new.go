@@ -36,9 +36,10 @@ func New(name string) error {
 	s.Stdin = &t
 	s.Terminal = &t
 
+	volumeName := fmt.Sprintf("lsw-v1-%s", name)
 	s.Volumes = []*specgen.NamedVolume{
 		{
-			Name: "lsw_wine_prefix",
+			Name: volumeName,
 			Dest: "/opt/prefix",
 		},
 	}

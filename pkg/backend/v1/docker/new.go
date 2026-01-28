@@ -26,6 +26,9 @@ func New(name string) error {
 	version := config.GetVersion()
 	image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
 
+	volumeName := fmt.Sprintf("lsw-v1-%s", name)
+	bindName := fmt.Sprintf("%s:/opt/prefix", volumeName)
+
 	createOpts := client.ContainerCreateOptions{
 		Name: name,
 		Config: &container.Config{
@@ -36,7 +39,7 @@ func New(name string) error {
 		},
 		HostConfig: &container.HostConfig{
 			Binds: []string{
-				"lsw_wine_prefix:/opt/prefix",
+				bindName,
 				fmt.Sprintf("%s:/mnt/workdir", filepath.ToSlash(cwd)),
 			},
 		},
