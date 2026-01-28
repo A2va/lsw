@@ -1,21 +1,26 @@
 # Linux Subsystem for Windows
 
-Recently, I started using Linux on my desktop, which made me realise something. WSL is extremely useful for building projects for Linux on Windows, but there is no such thing on Linux. That's why I made LSW the goal is to replicate WSL but in reverse.
+Recently, I started using Linux and one day hit a Windows-only CI failure with no Windows machine available. WSL lets you run Linux inside Windows — but there wasn’t a simple way to do the opposite. So I built LSW, it lets you spin up isolated Windows environments from Linux, each of these environment is called a bottle.
 
-Like WSL, it will have two versions: the first will be based on Wine, and the second will use Incus VM.
+LSW provides two backends:
+* v1 — Wine (container-based) → fast, lightweight
+* v2 — Incus VM (full Windows VM) 
 
 ## Installation & Setup
 
-### Install Dependencies
+### Install Dependencies for v1
+
+Install either [docker](https://docs.docker.com/engine/install/) or [podman](https://podman.io/docs/installation#linux-distributions).
+
+### Install Dependencies for v2
 
 *Fedora:*
 ```bash
-sudo dnf install incus wine
+sudo dnf install incus
 ```
 
 *Debian:*
 LSW requires Incus >= 6.11. Since official Debian repositories often carry older versions, use the [Zabbly repository](github.com/zabbly/incus) for the latest builds.
-
 
 Once Incus is installed, initialize it:
 ```bash
@@ -27,9 +32,7 @@ To avoid using `sudo` for every Incus command, add your user to the `incus-admin
 sudo usermod -aG incus-admin $USER
 ```
 
-### ISO Utilities
-
-LSW requires an ISO utility to package Windows components. Install *one* of the following:
+The v2 backend also requires an ISO utility to package Windows components. Install *one* of the following:
 * `mkisofs`
 * `genisoimage`
 * `xorriso`
@@ -39,6 +42,21 @@ LSW requires an ISO utility to package Windows components. Install *one* of the 
 You can create a new bottle (an instance of Windows tied to a v1 or v2 backend), by running 
 ```bash
 lsw new v2
+lsw new v1 --name test # give a name to the bottle
+```
+> [!NOTE]
+> The first creation of a bottle can take a while.
+>
+> LSW needs to download and prepare Windows components:
+>
+> - v1 (Wine): ~18 min the first time, ~2 min afterwards (cached)
+> - v2 (VM): ~15 min each time
+>
+> This is normal and only happens during provisioning.
+
+Once a bottle is created, you can get a shell into it with:
+```bash
+lsw shell test
 ```
 
 Offline Initialization:
@@ -48,7 +66,7 @@ lsw new --init
 ```
 This command downloads all backend-specific dependencies *without* creating a bottle.
 
-### Windows ISO Requirement
+### Windows ISO Requirement (only for v2 backend)
 
 > [!IMPORTANT]  
 > The Windows ISO cannot yet be downloaded automatically.  
@@ -61,7 +79,6 @@ This command downloads all backend-specific dependencies *without* creating a bo
 > ```
 > windows-server.iso
 > ```
-
 
 # Development
 
