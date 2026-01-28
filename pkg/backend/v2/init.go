@@ -30,6 +30,10 @@ func downloadVirtio() (string, error) {
 
 func downloadUnattendAssets() error {
 	version := config.GetVersion()
+	if version.Version == "dev" {
+		return nil
+	}
+
 	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/v2", version.Commit)
 	_, err := backend.DownloadFileIfNeeded(url+"/autounattend.xml", "autounattend.xml")
 	if err != nil {
