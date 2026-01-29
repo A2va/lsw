@@ -155,7 +155,7 @@ func getUnattendXmlFile() (string, error) {
 	version := config.GetVersion()
 	if version.Version == "dev" {
 		wd, _ := os.Getwd()
-		return path.Join(wd, "assets", "v1", "autounattend.xml"), nil
+		return path.Join(wd, "assets", "v2", "autounattend.xml"), nil
 	}
 	cache, err := backend.GetCacheDir()
 	if err != nil {
