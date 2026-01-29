@@ -16,7 +16,11 @@ func stopCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			bottle, found := backend.GetBottle(args[0])
+			bottleName := ""
+			if len(args) >= 1 {
+				bottleName = args[0]
+			}
+			bottle, found := backend.GetBottle(bottleName)
 
 			if !found {
 				return fmt.Errorf("not found the bottle")
