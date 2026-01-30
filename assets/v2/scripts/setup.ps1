@@ -61,6 +61,15 @@ function Install-OpenSSH {
     }
 }
 
+function Install-Redistribuable {
+    $drive = Get-DriveByFile "vc_redist.exe"
+    if (-not $drive) {
+        Write-Warning "vc_redist installer not found."; return
+    }
+    Start-Process -FilePath "$($drive):\vc_redist.exe" -ArgumentList "/install" "/passive", "/norestart"  -Wait
+    Start-Sleep -Seconds 10
+}
+
 function Install-WinFSP {
     # Searches for a file matching winfsp-*.msi
     $drive = Get-DriveByFile "winfsp.msi"
@@ -71,16 +80,22 @@ function Install-WinFSP {
     $msiPath = Get-ChildItem -Path "$($drive):\winfsp.msi" | Select-Object -First 1
     Write-Host "Installing WinFSP from $($msiPath.FullName)..."
 
+    Copy-Item $msiPath "C:\winfsp.msi"
+
     # INSTALLLEVEL=1000 ensures all features (including FUSE and Developer tools) are installed
-    $arguments = "/i `"$($msiPath)`" /qn /norestart INSTALLLEVEL=1000"
+    $arguments = "/i `"C:\winfsp.msi`" ADDLOCAL=ALL /qn /norestart"
 
     Start-Process "msiexec.exe" -ArgumentList $arguments -Wait
     Write-Host "WinFSP installation complete."
 }
 
+Install-Redistribuable
+Install-WinFSP
 Install-VirtioTools
 Install-OpenSSH
-Install-WinFSP
+
+Set-Service -Name "VirtioFsSvc" -StartupType Automatic
+Start-Service -Name "VirtioFsSvc"
 
 # Final Shutdown
 Write-Output "Setup complete. Shutting down..."

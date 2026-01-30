@@ -47,6 +47,11 @@ func downloadUnattendAssets() error {
 	return err
 }
 
+func downloadVsRedistribuable() (string, error) {
+	const url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+	return backend.DownloadFileIfNeeded(url, "vc_redist.x64.exe")
+}
+
 func downloadWindowsIso() (string, error) {
 	// Taken from massgrave
 	// https://massgrave.dev/windows-server-links#windows-server-23h2-no-gui
@@ -57,7 +62,7 @@ func downloadWindowsIso() (string, error) {
 }
 
 // Create a iso to install some software without internet connection
-func createSoftwareISO(winfspPath string, openSSHPath string) error {
+func createSoftwareISO(winfspPath string, openSSHPath string, redisPath string) error {
 	cachedir, err := backend.GetCacheDir()
 	if err != nil {
 		log.Fatal("cannot get cache directory")
@@ -73,6 +78,7 @@ func createSoftwareISO(winfspPath string, openSSHPath string) error {
 		backend.CreateDir(openSSHtmpDir, 0755)
 
 		gorecurcopy.Copy(winfspPath, path.Join(tmpDir, "winfsp.msi"))
+		gorecurcopy.Copy(redisPath, path.Join(tmpDir, "vc_redist.exe"))
 		gorecurcopy.CopyDirectory(openSSHPath, openSSHtmpDir)
 		generateISO(tmpDir, isoPath, "SOFTWARE")
 
@@ -109,7 +115,12 @@ func Init() {
 		log.Debug("cannot download Windows ISO, this is normal for now")
 	}
 
-	err = createSoftwareISO(winfspPath, openSSHPath)
+	redisPath, err := downloadVsRedistribuable()
+	if err != nil {
+		log.Fatal("cannot download Visual C++ Redistribuable")
+	}
+
+	err = createSoftwareISO(winfspPath, openSSHPath, redisPath)
 	if err != nil {
 		log.Fatal("cannot create software ISO")
 	}
