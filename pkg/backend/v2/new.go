@@ -289,6 +289,8 @@ func New(arch string, args NewArgument) error {
 	}
 	// defer os.RemoveAll(path.Dir(isoPath))
 
+	// FIXME Depending on the distro the socket path is at different place
+	// /run/incus/unix.socket for Fedora, and /var/lib/incus/unix.socket for Ubuntu
 	c, err := incus.ConnectIncusUnix("", nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)

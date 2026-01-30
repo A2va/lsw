@@ -21,7 +21,6 @@ func shellCmd() *cobra.Command {
 			if len(args) >= 1 {
 				bottleName = args[0]
 			}
-
 			bottle, found := backend.GetBottle(bottleName)
 
 			if !found {
