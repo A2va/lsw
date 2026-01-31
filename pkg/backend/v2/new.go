@@ -273,6 +273,19 @@ func sendMonitorKeys(key string, monitorAddr string, count int) {
 	}
 }
 
+// getFreePort asks the kernel for a free open port that is ready to use.
+func getFreePort() (port int, err error) {
+	var a *net.TCPAddr
+	if a, err = net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", a); err == nil {
+			defer l.Close()
+			return l.Addr().(*net.TCPAddr).Port, nil
+		}
+	}
+	return
+}
+
 func New(arch string, args NewArgument) error {
 	Init()
 
@@ -291,7 +304,7 @@ func New(arch string, args NewArgument) error {
 
 	// FIXME Depending on the distro the socket path is at different place
 	// /run/incus/unix.socket for Fedora, and /var/lib/incus/unix.socket for Ubuntu
-	c, err := incus.ConnectIncusUnix("", nil)
+	c, err := incus.ConnectIncusUnix("/run/incus/unix.socket", nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
 	}
@@ -304,7 +317,12 @@ func New(arch string, args NewArgument) error {
 	isoDir := path.Join(cache, "iso")
 
 	// FIXME might need to check if the port is available
-	const monitorAddr = "127.0.0.1:12345"
+	//
+	port, err := getFreePort()
+	if err != nil {
+		return err
+	}
+	monitorAddr := fmt.Sprintf("127.0.0.1:%d", port)
 
 	instance := api.InstancesPost{
 		Name: args.Name,
@@ -317,7 +335,12 @@ func New(arch string, args NewArgument) error {
 				"limits.cpu":    "4",
 				"limits.memory": "4GiB",
 				// Expose QEMU monitor via TCP to send the "any key" bypass
-				"raw.qemu":      "-device intel-hda -device hda-duplex -audio spice -monitor tcp:" + monitorAddr + ",server,nowait",
+				"raw.qemu": "-device intel-hda -device hda-duplex -audio spice -monitor tcp:" + monitorAddr + ",server,nowait",
+				// Fix to avoid
+				// ❯ sudo cat /var/log/incus/win-1/qemu.log
+				// qemu-system-x86_64: -device hda-duplex: no default audio driver available
+				// Perhaps you wanted to use -audio or set audiodev=qemu_spice-audiodev?
+				// Might need to investigate later
 				"raw.qemu.conf": "[audiodev \"qemu_spice-audiodev\"]\ndriver = \"none\"",
 			},
 			Devices: map[string]map[string]string{
