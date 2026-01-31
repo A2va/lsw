@@ -34,6 +34,7 @@ func initLog(debug bool) {
 		log.SetLevel(log.DebugLevel)
 		log.SetOutput(io.MultiWriter(os.Stderr, fileLogger))
 	} else {
+		log.SetLevel(log.DebugLevel)
 		log.SetOutput(fileLogger)
 	}
 
