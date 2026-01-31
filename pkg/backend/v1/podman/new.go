@@ -53,7 +53,14 @@ func New(name string) error {
 		},
 	}
 
-	_, err = containers.CreateWithSpec(c, s, nil)
+	res, err := containers.CreateWithSpec(c, s, nil)
+	if err != nil {
+		return err
+	}
+
+	// Remove the container because all we wanted was to create a new volume
+	// From there container creation are faster, so that we can mount new path easily be recreating the container (they are immutable)
+	_, err = containers.Remove(c, res.ID, &containers.RemoveOptions{})
 	if err != nil {
 		return err
 	}

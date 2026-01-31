@@ -45,7 +45,14 @@ func New(name string) error {
 		},
 	}
 
-	_, err = c.ContainerCreate(context.Background(), createOpts)
+	res, err := c.ContainerCreate(context.Background(), createOpts)
+	if err != nil {
+		return err
+	}
+
+	// Remove the container because all we wanted was to create a new volume
+	// From there container creation are faster, so that we can mount new path easily be recreating the container (they are immutable)
+	_, err = c.ContainerRemove(context.Background(), res.ID, client.ContainerRemoveOptions{})
 	if err != nil {
 		return err
 	}

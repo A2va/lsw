@@ -56,6 +56,7 @@ func Shell(bottle config.Bottle) error {
 		for _, addr := range net.Addresses {
 			// Family is "inet" for IPv4 or "inet6" for IPv6
 			// Scope is "global" for external IPs
+			// FIXME add support for ipv6
 			if addr.Family == "inet" && addr.Scope == "global" {
 				idAddr = addr.Address
 				break
