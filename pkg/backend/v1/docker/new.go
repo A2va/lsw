@@ -9,8 +9,61 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/client"
 )
+
+func CreateOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return client.ContainerCreateOptions{}, err
+	}
+
+	version := config.GetVersion()
+	image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
+	volumeName := fmt.Sprintf("lsw-v1-%s", bottle.Name)
+
+	var mounts []mount.Mount
+	mounts = append(mounts, mount.Mount{
+		Type:   mount.TypeVolume,
+		Source: volumeName,
+		Target: "/opt/prefix",
+	})
+
+	mounts = append(mounts, mount.Mount{
+		Type:   mount.TypeBind,
+		Source: cwd,
+		Target: cwd,
+	})
+
+	for _, m := range bottle.Mounts {
+		mountPath, err := filepath.Abs(m)
+		if err != nil {
+			return client.ContainerCreateOptions{}, err
+		}
+		mounts = append(mounts, mount.Mount{Type: mount.TypeBind, Source: mountPath, Target: mountPath})
+	}
+
+	createOpts := client.ContainerCreateOptions{
+		Name: bottle.Name,
+		Config: &container.Config{
+			Image: image,
+			Cmd:   []string{"wine", "cmd"},
+			// Cmd:          []string{"bash"},
+			Tty:          true,
+			OpenStdin:    true,
+			AttachStdin:  true,
+			AttachStdout: true,
+			WorkingDir:   cwd,
+		},
+		HostConfig: &container.HostConfig{
+			Mounts: mounts,
+		},
+	}
+
+	log.Debug("docker provider", "createOptions", createOpts)
+	return createOpts, nil
+}
 
 func New(name string) error {
 	c, err := client.New(client.FromEnv)
@@ -18,31 +71,9 @@ func New(name string) error {
 		return err
 	}
 
-	cwd, err := os.Getwd()
+	createOpts, err := CreateOptions(config.Bottle{Name: name})
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	version := config.GetVersion()
-	image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
-
-	volumeName := fmt.Sprintf("lsw-v1-%s", name)
-	bindName := fmt.Sprintf("%s:/opt/prefix", volumeName)
-
-	createOpts := client.ContainerCreateOptions{
-		Name: name,
-		Config: &container.Config{
-			Image:     image,
-			Cmd:       []string{"wine", "cmd"},
-			Tty:       true,
-			OpenStdin: true,
-		},
-		HostConfig: &container.HostConfig{
-			Binds: []string{
-				bindName,
-				fmt.Sprintf("%s:/mnt/workdir", filepath.ToSlash(cwd)),
-			},
-		},
+		return err
 	}
 
 	res, err := c.ContainerCreate(context.Background(), createOpts)

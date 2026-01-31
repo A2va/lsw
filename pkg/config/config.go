@@ -36,8 +36,8 @@ type Bottle struct {
 	// v1 or v2
 	Version    string `toml:"version"`
 	V1Provider string `toml:"v1_provider"`
-	// mounted drives
-	//
+	// Permanently mounted folder (absolute path)
+	Mounts []string
 	// the plain text password for a v2 vm
 	Password string
 }
