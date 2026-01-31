@@ -36,7 +36,7 @@ func shellCmd() *cobra.Command {
 			if bottle.Version == "v2" {
 				return v2.Shell(bottle)
 			} else if bottle.Version == "v1" {
-				return v1.Stop(bottle)
+				return v1.Shell(bottle)
 			}
 			return nil
 		},
