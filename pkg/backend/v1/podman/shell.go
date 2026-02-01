@@ -51,6 +51,7 @@ func execMethod(c context.Context, nameOrID string) error {
 }
 
 func Shell(bottle config.Bottle) error {
+	// FIXME Cannot create two shell session of the same bottle
 	log.Debug("shell into container using podman provider", "name", bottle.Name)
 
 	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
@@ -58,5 +59,30 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	return execMethod(c, bottle.Name)
+	spec, err := CreateSpec(bottle)
+	if err != nil {
+		return err
+	}
+
+	_, err = containers.CreateWithSpec(c, &spec, &containers.CreateOptions{})
+	if err != nil {
+		return err
+	}
+
+	err = containers.Start(c, bottle.Name, &containers.StartOptions{})
+	if err != nil {
+		return err
+	}
+
+	err = attachMethod(c, bottle.Name)
+	if err != nil {
+		return err
+	}
+
+	err = containers.Stop(c, bottle.Name, &containers.StopOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

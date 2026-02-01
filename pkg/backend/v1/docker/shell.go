@@ -23,7 +23,7 @@ func attachMethod(c *client.Client, nameOrID string) (client.HijackedResponse, e
 	}
 
 	// Prompt is not displayed correctly without it
-	res.HijackedResponse.Conn.Write([]byte("\r"))
+	// res.HijackedResponse.Conn.Write([]byte("\r"))
 	return res.HijackedResponse, nil
 }
 
@@ -51,6 +51,7 @@ func execMethod(c *client.Client, nameOrID string) (client.HijackedResponse, err
 }
 
 func Shell(bottle config.Bottle) error {
+	// FIXME Cannot create two shell session of the same bottle
 	log.Debug("shell into container using docker provider", "name", bottle.Name)
 
 	c, err := client.New(client.FromEnv)

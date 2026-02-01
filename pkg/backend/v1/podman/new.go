@@ -4,13 +4,69 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/bindings"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
+
+func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return specgen.SpecGenerator{}, err
+	}
+
+	version := config.GetVersion()
+	image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
+	volumeName := fmt.Sprintf("lsw-v1-%s", bottle.Name)
+
+	var mounts []specs.Mount
+
+	mounts = append(mounts, specs.Mount{
+		Type:        "volume",
+		Source:      volumeName,
+		Destination: "/opt/prefix",
+	})
+
+	mounts = append(mounts, specs.Mount{
+		Type:        "bind",
+		Source:      cwd,
+		Destination: cwd,
+	})
+
+	for _, m := range bottle.Mounts {
+		mountPath, err := filepath.Abs(m)
+		if err != nil {
+			return specgen.SpecGenerator{}, err
+		}
+		mounts = append(mounts, specs.Mount{Type: "bind", Source: mountPath, Destination: mountPath})
+	}
+
+	t := true
+	spec := specgen.SpecGenerator{
+		ContainerBasicConfig: specgen.ContainerBasicConfig{
+			Name:     bottle.Name,
+			Command:  []string{"wine", "cmd"},
+			Stdin:    &t,
+			Terminal: &t,
+		},
+		ContainerStorageConfig: specgen.ContainerStorageConfig{
+			Image:  image,
+			Mounts: mounts,
+		},
+		ContainerHealthCheckConfig: specgen.ContainerHealthCheckConfig{
+			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+			HealthMaxLogCount:    define.DefaultHealthMaxLogCount,
+			HealthMaxLogSize:     define.DefaultHealthMaxLogSize,
+		},
+	}
+
+	return spec, nil
+}
 
 func New(name string) error {
 	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
@@ -18,42 +74,12 @@ func New(name string) error {
 		return err
 	}
 
-	cwd, err := os.Getwd()
+	spec, err := CreateSpec(config.Bottle{Name: name})
 	if err != nil {
 		return err
 	}
 
-	version := config.GetVersion()
-	image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
-	s := specgen.NewSpecGenerator(image, false)
-
-	s.Name = name
-	s.WorkDir = "/mnt/workdir"
-	s.Command = []string{"wine", "cmd.exe"}
-
-	t := true
-	s.Terminal = &t
-	s.Stdin = &t
-	s.Terminal = &t
-
-	volumeName := fmt.Sprintf("lsw-v1-%s", name)
-	s.Volumes = []*specgen.NamedVolume{
-		{
-			Name: volumeName,
-			Dest: "/opt/prefix",
-		},
-	}
-
-	s.Mounts = []specs.Mount{
-		{
-			Source:      cwd,
-			Destination: "/mnt/workdir",
-			Type:        "bind",
-			// Options: []string{"rw", "z"}, // "z" is useful for SELinux
-		},
-	}
-
-	res, err := containers.CreateWithSpec(c, s, nil)
+	res, err := containers.CreateWithSpec(c, &spec, &containers.CreateOptions{})
 	if err != nil {
 		return err
 	}
