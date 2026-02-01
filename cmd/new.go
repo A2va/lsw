@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -13,8 +14,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Give a new name to a bottle, it only works if the existing names startin with win are in order (and they should be)
+// Give a new name to a bottle
 func newName(names []string) string {
+	if len(names) == 0 {
+		return "win"
+	}
+
 	extractNum := func(name string) int {
 		s := strings.Split(name, "-")
 
@@ -31,12 +36,15 @@ func newName(names []string) string {
 	num := 0
 
 	for idx, name := range names {
-		if extractNum(name) != idx {
-			num = idx + 1
+		n := extractNum(name)
+		if n != idx {
+			num = idx
+			break
 		}
 	}
+
 	if num == 0 {
-		return "win"
+		return fmt.Sprintf("win-%d", len(names))
 	} else {
 		return fmt.Sprintf("win-%d", num)
 	}
@@ -49,6 +57,13 @@ func autoName(cfg *config.Config) string {
 			names = append(names, b.Name)
 		}
 	}
+
+	sort.Slice(names, func(i, j int) bool {
+		if names[i] < names[j] {
+			return true
+		}
+		return false
+	})
 	return newName(names)
 }
 
@@ -63,6 +78,7 @@ func newV1Cmd() *cobra.Command {
 			if name == "" {
 				name = autoName(cfg)
 			}
+			log.Debug("auto naming", "name", name)
 
 			init, _ := cmd.Flags().GetBool("init")
 			if init {
@@ -96,6 +112,8 @@ func newV2Cmd() *cobra.Command {
 				v2.Init()
 				return nil
 			}
+
+			log.Debug("auto naming", "name", name)
 
 			ram, _ := cmd.Flags().GetString("ram")
 			disk, _ := cmd.Flags().GetString("disk")
