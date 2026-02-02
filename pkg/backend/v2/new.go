@@ -357,6 +357,7 @@ func New(arch string, args NewArgument) error {
 				},
 				"install": {
 					"type":          "disk",
+					"io.bus":        "usb",
 					"source":        path.Join(downloadsDir, "windows-server.iso"),
 					"boot.priority": "10",
 				},
