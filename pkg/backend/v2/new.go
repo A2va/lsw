@@ -332,6 +332,7 @@ func New(arch string, args NewArgument) error {
 		},
 		InstancePut: api.InstancePut{
 			Config: map[string]string{
+				"image.os":      "Windows",
 				"limits.cpu":    "4",
 				"limits.memory": "4GiB",
 				// Expose QEMU monitor via TCP to send the "any key" bypass
@@ -371,6 +372,11 @@ func New(arch string, args NewArgument) error {
 					"type":   "disk",
 					"io.bus": "usb",
 					"source": isoPath,
+				},
+				"agent": {
+					"type":   "disk",
+					"io.bus": "usb",
+					"source": "agent:config",
 				},
 				// It seems that the lower the drive is, the logical name becomes closer to C.
 				// It is necessary because my unattend xml file load virtio drivers only for D, E & F drives.

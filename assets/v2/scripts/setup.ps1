@@ -66,7 +66,7 @@ function Install-Redistribuable {
     if (-not $drive) {
         Write-Warning "vc_redist installer not found."; return
     }
-    Start-Process -FilePath "$($drive):\vc_redist.exe" -ArgumentList "/install" "/passive", "/norestart"  -Wait
+    Start-Process -FilePath "$($drive):\vc_redist.exe" -ArgumentList "/install", "/passive", "/norestart"  -Wait
     Start-Sleep -Seconds 10
 }
 
@@ -89,6 +89,16 @@ function Install-WinFSP {
     Write-Host "WinFSP installation complete."
 }
 
+function Install-IncusAgent {
+    $drive = Get-DriveByFile "incus-agent-setup.ps1"
+    if (-not $drive) {
+        Write-Warning "Incus installer not found."; return
+    }
+    powershell.exe -ExecutionPolicy Bypass -File "$($drive):\install.ps1"
+    Write-Host "Incus Agent installation complete"
+}
+
+Install-IncusAgent
 Install-Redistribuable
 Install-WinFSP
 Install-VirtioTools
