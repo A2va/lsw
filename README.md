@@ -16,7 +16,7 @@ Install either [docker](https://docs.docker.com/engine/install/) or [podman](htt
 
 *Fedora:*
 ```bash
-sudo dnf install incus
+sudo dnf install incus virtiofsd
 ```
 
 *Debian:*
