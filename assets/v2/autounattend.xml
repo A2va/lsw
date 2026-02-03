@@ -79,6 +79,7 @@
             versionScope="nonSxS"
         >
         <RunSynchronous>
+            <!-- Bypass TPM check -->
 			<RunSynchronousCommand wcm:action="add">
 				<Order>1</Order>
 				<Path

@@ -3,6 +3,7 @@ package v2
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"os/exec"
@@ -334,7 +335,7 @@ func New(arch string, args NewArgument) error {
 			Config: map[string]string{
 				"image.os":      "Windows",
 				"limits.cpu":    "4",
-				"limits.memory": "4GiB",
+				"limits.memory": "6GiB",
 				// Expose QEMU monitor via TCP to send the "any key" bypass
 				"raw.qemu": "-device intel-hda -device hda-duplex -audio spice -monitor tcp:" + monitorAddr + ",server,nowait",
 				// Fix to avoid
@@ -349,34 +350,13 @@ func New(arch string, args NewArgument) error {
 					"type": "disk",
 					"pool": "default",
 					"path": "/",
-					"size": "25GiB",
+					"size": "60GiB",
+					// "io.bus": "nvme",
 				},
-				"vtpm": {"type": "tpm"},
+				"vtpm": {"type": "tpm", "path": "/dev/tpm0"},
 				"eth0": {
 					"type":    "nic",
 					"network": "incusbr0",
-				},
-				"install": {
-					"type":          "disk",
-					"io.bus":        "usb",
-					"source":        path.Join(downloadsDir, "windows-server.iso"),
-					"boot.priority": "10",
-				},
-				// ISO containing SSH and winfsp
-				"software": {
-					"type":   "disk",
-					"io.bus": "usb",
-					"source": path.Join(isoDir, "software.iso"),
-				},
-				"autounattend": {
-					"type":   "disk",
-					"io.bus": "usb",
-					"source": isoPath,
-				},
-				"agent": {
-					"type":   "disk",
-					"io.bus": "usb",
-					"source": "agent:config",
 				},
 				// It seems that the lower the drive is, the logical name becomes closer to C.
 				// It is necessary because my unattend xml file load virtio drivers only for D, E & F drives.
@@ -387,7 +367,32 @@ func New(arch string, args NewArgument) error {
 					"io.bus": "usb",
 					"source": path.Join(downloadsDir, "virtio.iso"),
 				},
+				"autounattend": {
+					"type":   "disk",
+					"io.bus": "usb",
+					"source": isoPath,
+				},
+				"install": {
+					"type":          "disk",
+					"source":        path.Join(downloadsDir, "windows-server.iso"),
+					"boot.priority": "10",
+				},
 			},
+		},
+	}
+
+	// Devices that are added after windows kernel is installed
+	otherDevices := map[string]map[string]string{
+		// ISO containing SSH and winfsp
+		"software": {
+			"type":   "disk",
+			"io.bus": "usb",
+			"source": path.Join(isoDir, "software.iso"),
+		},
+		"agent": {
+			"type":   "disk",
+			"io.bus": "usb",
+			"source": "agent:config",
 		},
 	}
 
@@ -415,12 +420,12 @@ func New(arch string, args NewArgument) error {
 	sendMonitorKeys("ret", monitorAddr, 30)
 
 	q := make(chan string)
-	listener, evt := eventHandler(c, args.Name, q)
+	listener, evt := eventHandler(c, args.Name, q, otherDevices)
 
 	log.Debug("installing Windows Files")
 	fmt.Print("\rStatus: [1/3] Installing Windows Files...           ")
 
-	ev := timeout(q, 8*time.Minute)
+	ev := timeout(q, 7*time.Minute)
 	// Windows have taken more than 8 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
 		log.Debug("missing first restart")
@@ -465,9 +470,7 @@ func New(arch string, args NewArgument) error {
 		cfg.DefaultBottle = args.Name
 	}
 
-	removeDevice(c, args.Name, "software")
-	removeDevice(c, args.Name, "autounattend")
-	removeDevice(c, args.Name, "virtio")
+	removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
 	return nil
 }
 
@@ -481,22 +484,45 @@ func timeout(q <-chan string, d time.Duration) string {
 	}
 }
 
-func removeDevice(c incus.InstanceServer, vmName string, device string) {
+func addDevices(c incus.InstanceServer, vmName string, devices map[string]map[string]string) {
 	inst, etag, err := c.GetInstance(vmName)
 	if err != nil {
 		log.Fatal("failed to fetch instance for cleanup", "err", err)
 	}
 
-	delete(inst.Devices, device)
+	maps.Copy(inst.Devices, devices)
+
+	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
+	if err != nil {
+		log.Fatal("update instance failed", "err", err)
+	}
+	err = op.Wait()
+	if err != nil {
+		log.Fatal("waiting operation failed", "err", err)
+	}
+}
+
+func removeDevices(c incus.InstanceServer, vmName string, devices []string) {
+	inst, etag, err := c.GetInstance(vmName)
+	if err != nil {
+		log.Fatal("failed to fetch instance for cleanup", "err", err)
+	}
+
+	for _, device := range devices {
+		delete(inst.Devices, device)
+	}
 
 	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
 	if err != nil {
 		log.Fatal("cleanup failed", "err", err)
 	}
 	op.Wait()
+	if err != nil {
+		log.Fatal("waiting operation failed", "err", err)
+	}
 }
 
-func eventHandler(c incus.InstanceServer, vmName string, q chan<- string) (*incus.EventListener, *incus.EventTarget) {
+func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, devicesToAdd map[string]map[string]string) (*incus.EventListener, *incus.EventTarget) {
 	listener, err := c.GetEvents()
 	if err != nil {
 		log.Fatal("failed to connect to event stream", "err", err)
@@ -526,11 +552,12 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string) (*incu
 			}
 
 			if lifecycle.Action == "instance-restarted" && countRestart == 1 {
-				removeDevice(c, vmName, "install")
+				removeDevices(c, vmName, []string{"install"})
+				addDevices(c, vmName, devicesToAdd)
 				log.Debug("install ISO removed.")
 			}
 
-			if lifecycle.Action != "instance-updated" {
+			if lifecycle.Action == "instance-restarted" || lifecycle.Action == "instance-shutdown" {
 				q <- lifecycle.Action
 			}
 		}
