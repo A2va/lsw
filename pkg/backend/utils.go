@@ -211,7 +211,7 @@ func GetBottle(name string) (config.Bottle, bool) {
 		bottleName = cfg.DefaultBottle
 	}
 
-	log.Debug("bottle name", name)
+	log.Debug("bottle", "name", name)
 
 	var bottle config.Bottle
 	found := false

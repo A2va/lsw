@@ -7,13 +7,12 @@ import (
 
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
-	incus "github.com/lxc/incus/client"
 )
 
 func Shell(bottle config.Bottle) error {
 	// TODO Maybe start if stopped
 
-	c, err := incus.ConnectIncusUnix("/run/incus/unix.socket", nil)
+	c, err := incusClient()
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
 	}
