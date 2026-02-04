@@ -514,7 +514,7 @@ func removeDevices(c incus.InstanceServer, vmName string, devices []string) {
 	if err != nil {
 		log.Fatal("updating instance failed", "err", err)
 	}
-	op.Wait()
+	err = op.Wait()
 	if err != nil {
 		log.Fatal("waiting operation failed", "err", err)
 	}

@@ -41,6 +41,7 @@ func addSharedDevice(bottle config.Bottle, c incus.InstanceServer) error {
 		log.Fatal("waiting operation failed", "err", err)
 	}
 
+	return nil
 }
 
 func Shell(bottle config.Bottle) error {
