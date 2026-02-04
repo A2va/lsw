@@ -26,12 +26,12 @@ func stopCmd() *cobra.Command {
 				return fmt.Errorf("not found the bottle")
 			}
 
-			if bottle.Version == "v2" {
-				return v2.Stop(bottle)
-			} else if bottle.Version == "v1" {
+			if bottle.Version == "v1" {
 				return v1.Stop(bottle)
+			} else if bottle.Version == "v2" {
+				return v2.Stop(bottle)
 			}
-			return nil
+			return fmt.Errorf("not a valid backend")
 		},
 	}
 	return cmd

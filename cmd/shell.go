@@ -33,15 +33,13 @@ func shellCmd() *cobra.Command {
 				return nil
 			}
 
-			if bottle.Version == "v2" {
-				return v2.Shell(bottle)
-			} else if bottle.Version == "v1" {
+			if bottle.Version == "v1" {
 				return v1.Shell(bottle)
+			} else if bottle.Version == "v2" {
+				return v2.Shell(bottle)
 			}
-			return nil
+			return fmt.Errorf("not a valid backend")
 		},
 	}
-	cmd.PersistentFlags().Bool("askpass", false, "Used for an SSH connection")
-
 	return cmd
 }
