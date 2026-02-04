@@ -1,6 +1,6 @@
 # Linux Subsystem for Windows
 
-Recently, I started using Linux and one day hit a Windows-only CI failure with no Windows machine available. WSL lets you run Linux inside Windows — but there wasn’t a simple way to do the opposite. So I built LSW, it lets you spin up isolated Windows environments from Linux, each of these environment is called a bottle.
+Recently, I started using Linux and one day hit a Windows-only CI failure with no Windows machine available. WSL lets you run Linux inside Windows — but there wasn’t a simple way to do the opposite. So I built LSW, it lets you spin up isolated Windows environments from Linux, each of these environments is called a bottle.
 
 LSW provides two backends:
 * v1 — Wine (container-based) → fast, lightweight
@@ -25,11 +25,19 @@ LSW requires Incus >= 6.11. Since official Debian repositories often carry older
 Once Incus is installed, initialize it:
 ```bash
 sudo incus admin init --auto
+sudo systemctl enable --now incus.service
 ```
 
 To avoid using `sudo` for every Incus command, add your user to the `incus-admin` group:
 ```bash
 sudo usermod -aG incus-admin $USER
+```
+
+If you want to have an internet connection, you might have to setup your [firewall](https://linuxcontainers.org/incus/docs/main/howto/network_bridge_firewalld/)
+On system using firewalld (like Fedora) you can execute:
+```bash
+sudo firewall-cmd --zone=trusted --change-interface=incusbr0 --permanent
+sudo firewall-cmd --reload
 ```
 
 The v2 backend also requires an ISO utility to package Windows components. Install *one* of the following:
@@ -79,6 +87,41 @@ This command downloads all backend-specific dependencies *without* creating a bo
 > ```
 > windows-server.iso
 > ```
+
+# FAQ
+
+## What is the difference or limitations between the two backends ?
+
+Before we continue, it is important to clarify that the v1 backend is container-based and supports both Docker and Podman. 
+The v2, on the other hand, is a fully managed virtual machine provided by Incus. 
+
+Generally speaking, v1 bottles are faster and use fewer resources, but installing and running software can be more challenging. This is also why we have decided to package some common development tools, such as MSVC, Xmake and rustup, in v1 bottles. For the v2 backend, however, you have to install these tools yourself.
+
+Another limitation of the v2 backend is that you cannot mount multiple directories at the same time. Only the current working directory when executing 'lsw shell' will be mounted. There is also no support for global mounting (i.e. those in the config file).
+
+## How to resize a v1 bottle ?
+
+This is not possible to do it with lsw directly but you can use incus. First stop the bottle and execute:
+```bash
+incus config device set <bottle-name> root size=<new-size>
+```
+Then start the VM again and execute this inside it:
+```powershell
+$size = (Get-PartitionSupportedSize -DriveLetter C)
+Resize-Partition -DriveLetter C -Size $size.SizeMax
+```
+
+## Where are bottle files stored?
+
+- v1 bottles live inside your volumes (Docker/Podman)
+- v2 bottles are managed by Incus
+
+You can inspect them with:
+```bash
+incus list
+docker volume ls
+podman volume ls
+```
 
 # Development
 
