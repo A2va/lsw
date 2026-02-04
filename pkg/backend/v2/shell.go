@@ -7,7 +7,41 @@ import (
 
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
+	incus "github.com/lxc/incus/client"
 )
+
+func addSharedDevice(bottle config.Bottle, c incus.InstanceServer) error {
+	inst, etag, err := c.GetInstance(bottle.Name)
+	if err != nil {
+		return err
+	}
+
+	_, exist := inst.Devices["shared"]
+	if exist {
+		return nil
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	inst.Devices["shared"] = map[string]string{
+		"type":   "disk",
+		"source": cwd,
+		"path":   "shared",
+	}
+
+	op, err := c.UpdateInstance(bottle.Name, inst.Writable(), etag)
+	if err != nil {
+		log.Fatal("update instance failed", "err", err)
+	}
+	err = op.Wait()
+	if err != nil {
+		log.Fatal("waiting operation failed", "err", err)
+	}
+
+}
 
 func Shell(bottle config.Bottle) error {
 	// TODO Maybe start if stopped
@@ -15,6 +49,11 @@ func Shell(bottle config.Bottle) error {
 	c, err := incusClient()
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
+	}
+
+	err = addSharedDevice(bottle, c)
+	if err != nil {
+		return err
 	}
 
 	state, _, err := c.GetInstanceState(bottle.Name)

@@ -503,7 +503,7 @@ func addDevices(c incus.InstanceServer, vmName string, devices map[string]map[st
 func removeDevices(c incus.InstanceServer, vmName string, devices []string) {
 	inst, etag, err := c.GetInstance(vmName)
 	if err != nil {
-		log.Fatal("failed to fetch instance for cleanup", "err", err)
+		log.Fatal("failed to fetch instance", "err", err)
 	}
 
 	for _, device := range devices {
@@ -512,7 +512,7 @@ func removeDevices(c incus.InstanceServer, vmName string, devices []string) {
 
 	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
 	if err != nil {
-		log.Fatal("cleanup failed", "err", err)
+		log.Fatal("updating instance failed", "err", err)
 	}
 	op.Wait()
 	if err != nil {
