@@ -18,6 +18,16 @@ var (
 )
 
 func main() {
+	// Check for ASKPASS mode immediately
+	// If this env var is set, we are being called by SSH.
+	// Just print the password to Stdout and exit.
+	if pass, ok := os.LookupEnv("LSW_ASKPASS"); ok {
+		// fmt.Print is safer than Println or Printf to avoid accidental formatting
+		// of special characters in the password.
+		fmt.Print(pass)
+		return
+	}
+
 	cmd.Execute(
 		buildVersion(version, commit, date, builtBy),
 		os.Exit,

@@ -4,39 +4,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
-	"path/filepath"
 
-	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	incus "github.com/lxc/incus/client"
 )
 
-func helperScript(bottle config.Bottle) (string, error) {
-	cache, err := backend.GetCacheDir()
-	if err != nil {
-		return "", err
-	}
-
-	tmpDir := path.Join(cache, "tmp")
-	log.Debug(tmpDir)
-
-	wrapperScript := filepath.Join(tmpDir, "askpass_wrapper.sh")
-	scriptContent := fmt.Sprintf("#!/bin/sh\necho -n %s\n", bottle.Password)
-	err = os.WriteFile(wrapperScript, []byte(scriptContent), 0700)
-	if err != nil {
-		return wrapperScript, err
-	}
-
-	return wrapperScript, nil
-}
-
 func Shell(bottle config.Bottle) error {
 	// TODO Maybe start if stopped
 
-	log.Debug("test")
-	c, err := incus.ConnectIncusUnix("", nil)
+	c, err := incus.ConnectIncusUnix("/run/incus/unix.socket", nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
 	}
@@ -54,10 +31,10 @@ func Shell(bottle config.Bottle) error {
 
 	for _, net := range state.Network {
 		for _, addr := range net.Addresses {
+			log.Debug("found adr", "family", addr.Family, "value", addr.Address, "scope", addr.Scope)
 			// Family is "inet" for IPv4 or "inet6" for IPv6
 			// Scope is "global" for external IPs
-			// FIXME add support for ipv6
-			if addr.Family == "inet" && addr.Scope == "global" {
+			if (addr.Family == "inet" || addr.Family == "inet6") && addr.Scope == "global" {
 				idAddr = addr.Address
 				break
 			}
@@ -66,29 +43,30 @@ func Shell(bottle config.Bottle) error {
 
 	username := os.Getenv("USER")
 
-	// StrictHostKeyChecking is available from OpenSSH 7.6+, so might need to come back later to it and add
-	// -o StrictHostKeyChecking=no to support older version
-	cmd := exec.Command("ssh", username+"@"+idAddr, "-o StrictHostKeyChecking=accept-new")
+	cmd := exec.Command("ssh", username+"@"+idAddr,
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "StrictHostKeyChecking=no",
+	)
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	wrapperScript, err := helperScript(bottle)
+	lsw, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	defer os.Remove(wrapperScript)
+	log.Debug(lsw)
 
-	log.Debug(wrapperScript)
 	// SSH cannot accept password from the cmd line, the only way is with a ask pass script.
 	// Another solution would be to generate a SSH key and pack it with the unattended iso.
 	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("SSH_ASKPASS=%s", wrapperScript),
+		fmt.Sprintf("SSH_ASKPASS=%s", lsw),
 		"SSH_ASKPASS_REQUIRE=force",
+		fmt.Sprintf("LSW_ASKPASS=%s", bottle.Password),
 	)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to create iso")
+		return fmt.Errorf("failed to exex ssh: %w", err)
 	}
 
 	return nil

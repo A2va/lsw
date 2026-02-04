@@ -59,6 +59,9 @@ function Install-OpenSSH {
     if (!(Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue)) {
         New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
     }
+
+    Set-NetIPv6Protocol -RandomizeIdentifiers Disabled
+    Set-NetIPv6Protocol -UseTemporaryAddresses Disabled
 }
 
 function Install-Redistribuable {
