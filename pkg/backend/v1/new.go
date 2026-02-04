@@ -7,8 +7,11 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-func New(name string) error {
-	provider := getProvider(config.Bottle{})
+func New(name string, provider string) error {
+	if provider == "" {
+		provider = getProvider(config.Bottle{})
+	}
+	Init(provider)
 
 	log.Debug("new bottle on v1 backend", "name", name)
 

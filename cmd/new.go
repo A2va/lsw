@@ -80,17 +80,19 @@ func newV1Cmd() *cobra.Command {
 			}
 			log.Debug("auto naming", "name", name)
 
+			provider, _ := cmd.Flags().GetString("provider")
+
 			init, _ := cmd.Flags().GetBool("init")
 			if init {
-				v1.Init()
+				v1.Init(provider)
 				return nil
 			}
 
-			return v1.New(name)
+			return v1.New(name, provider)
 		},
 	}
 
-	// v1-specific flags (if any)
+	cmd.Flags().String("provider", "", "Force a bottle to have a specific provider instead of the system detetec one.")
 
 	return cmd
 }
@@ -132,7 +134,6 @@ func newV2Cmd() *cobra.Command {
 		},
 	}
 
-	// v2-only flags
 	cmd.Flags().String("ram", "6GiB", "Define the RAM in GiB for the VM, only for v2 backend.")
 	cmd.Flags().String("disk", "25GiB", "Define the disk space in GiB for the VM, only for v2 backend.")
 	cmd.Flags().String("cpus", "4", "Set the number of cpu cores for the VM, only for v2 backend.")

@@ -6,9 +6,11 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 )
 
-func Init() {
+func Init(provider string) {
 	// no need to send a specific bottle since init for bottle creation
-	provider := getProvider(config.Bottle{})
+	if provider == "" {
+		provider = getProvider(config.Bottle{})
+	}
 
 	if provider == "docker" {
 		docker.Init()
