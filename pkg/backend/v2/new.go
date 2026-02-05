@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -21,16 +22,16 @@ import (
 	"github.com/plus3it/gorecurcopy"
 )
 
-type NewArgument struct {
+type NewV2Argument struct {
 	Name     string
-	Ram      string
-	Disk     string
-	Cpus     string
+	Ram      uint
+	Disk     uint
+	Cpus     uint
 	Password string
 	Username string
 }
 
-type WindowsLocales struct {
+type windowsLocales struct {
 	InputLocale  string // Keyboard Layout (e.g., fr-CH)
 	SystemLocale string // The OS Language (e.g., en-US)
 	UserLocale   string // Date/Currency formats (e.g., fr-CH)
@@ -120,10 +121,10 @@ func getPrimary(val string) string {
 	return strings.TrimSpace(parts[0])
 }
 
-func detectLocale() (WindowsLocales, error) {
+func detectLocale() (windowsLocales, error) {
 	out, err := exec.Command("localectl").Output()
 	if err != nil {
-		return WindowsLocales{}, err
+		return windowsLocales{}, err
 	}
 
 	data := string(out)
@@ -144,7 +145,7 @@ func detectLocale() (WindowsLocales, error) {
 
 	// Often it is safer to use the InputLocale region for UserLocale
 	// so dates match the keyboard expectations, or just use SystemLocale.
-	return WindowsLocales{
+	return windowsLocales{
 		InputLocale:  inputLocale,
 		SystemLocale: sysLang,
 		UILanguage:   sysLang,
@@ -205,7 +206,7 @@ func copyUnattendAssetsToDir(d string) error {
 	return nil
 }
 
-func createAutounattendISO(args NewArgument) (string, error) {
+func createAutounattendISO(args NewV2Argument) (string, error) {
 	tmpDir, err := os.MkdirTemp("", "lsw-autounattend")
 	if err != nil {
 		return "", err
@@ -287,7 +288,7 @@ func getFreePort() (port int, err error) {
 	return
 }
 
-func New(arch string, args NewArgument) error {
+func New(arch string, args NewV2Argument) error {
 	Init()
 
 	log.Debug("new bottle on v1 backend", "name", args.Name)
@@ -323,6 +324,10 @@ func New(arch string, args NewArgument) error {
 	}
 	monitorAddr := fmt.Sprintf("127.0.0.1:%d", port)
 
+	diskSize := fmt.Sprintf("%dGiB", args.Disk)
+	ramSize := fmt.Sprintf("%dGiB", args.Ram)
+	cpu := strconv.FormatUint(uint64(3), 10)
+
 	instance := api.InstancesPost{
 		Name: args.Name,
 		Type: api.InstanceTypeVM,
@@ -332,8 +337,8 @@ func New(arch string, args NewArgument) error {
 		InstancePut: api.InstancePut{
 			Config: map[string]string{
 				"image.os":      "Windows",
-				"limits.cpu":    "4",
-				"limits.memory": "6GiB",
+				"limits.cpu":    cpu,
+				"limits.memory": ramSize,
 				// Expose QEMU monitor via TCP to send the "any key" bypass
 				"raw.qemu": "-device intel-hda -device hda-duplex -audio spice -monitor tcp:" + monitorAddr + ",server,nowait",
 				// Fix to avoid
@@ -348,7 +353,7 @@ func New(arch string, args NewArgument) error {
 					"type": "disk",
 					"pool": "default",
 					"path": "/",
-					"size": "60GiB",
+					"size": diskSize,
 					// "io.bus": "nvme",
 				},
 				"vtpm": {"type": "tpm", "path": "/dev/tpm0"},

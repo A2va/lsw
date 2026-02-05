@@ -117,13 +117,22 @@ func newV2Cmd() *cobra.Command {
 
 			log.Debug("auto naming", "name", name)
 
-			ram, _ := cmd.Flags().GetString("ram")
-			disk, _ := cmd.Flags().GetString("disk")
-			cpus, _ := cmd.Flags().GetString("cpus")
-			password, _ := cmd.Flags().GetString("password")
-			user, _ := cmd.Flags().GetString("user")
+			ram, err := cmd.Flags().GetUint("ram")
+			if err != nil {
+				return err
+			}
+			disk, err := cmd.Flags().GetUint("disk")
+			if err != nil {
+				return err
+			}
+			cpus, err := cmd.Flags().GetUint("cpus")
+			if err != nil {
+				return err
+			}
+			password, err := cmd.Flags().GetString("password")
+			user, err := cmd.Flags().GetString("user")
 
-			return v2.New("amd64", v2.NewArgument{
+			return v2.New("amd64", v2.NewV2Argument{
 				Name:     name,
 				Ram:      ram,
 				Disk:     disk,
@@ -134,11 +143,11 @@ func newV2Cmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String("ram", "6GiB", "Define the RAM in GiB for the VM, only for v2 backend.")
-	cmd.Flags().String("disk", "25GiB", "Define the disk space in GiB for the VM, only for v2 backend.")
-	cmd.Flags().String("cpus", "4", "Set the number of cpu cores for the VM, only for v2 backend.")
+	cmd.Flags().Uint("ram", 6, "Set the RAM in GiB")
+	cmd.Flags().Uint("disk", 25, "Set the disk space in GiB")
+	cmd.Flags().Uint("cpus", 4, "Set the number of cpu cores")
 
-	cmd.Flags().String("password", "123456", "User password")
+	cmd.Flags().String("password", "lsw", "User password")
 	cmd.Flags().String("user", os.Getenv("USER"), "Username")
 	return cmd
 }
@@ -153,7 +162,7 @@ func newCmd() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().Bool("init", false, "Download any necessary files then exit without creating a bottle")
-	cmd.PersistentFlags().StringP("name", "n", "", "Define a name for the bottle, if not provided an automatic name will be given.")
+	cmd.PersistentFlags().StringP("name", "n", "", "Define a name for the bottle, if not provided an automatic name will be given")
 
 	cmd.AddCommand(newV2Cmd())
 	cmd.AddCommand(newV1Cmd())
