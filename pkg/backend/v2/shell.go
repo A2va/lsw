@@ -10,20 +10,15 @@ import (
 	incus "github.com/lxc/incus/client"
 )
 
-func addSharedDevice(bottle config.Bottle, c incus.InstanceServer) error {
+func addSharedDevice(bottle config.Bottle, cwd string, c incus.InstanceServer) string {
 	inst, etag, err := c.GetInstance(bottle.Name)
 	if err != nil {
-		return err
+		log.Fatal("get instance failed", "err", err)
 	}
 
-	_, exist := inst.Devices["shared"]
+	d, exist := inst.Devices["shared"]
 	if exist {
-		return nil
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
+		return d["source"]
 	}
 
 	inst.Devices["shared"] = map[string]string{
@@ -41,7 +36,7 @@ func addSharedDevice(bottle config.Bottle, c incus.InstanceServer) error {
 		log.Fatal("waiting operation failed", "err", err)
 	}
 
-	return nil
+	return ""
 }
 
 func Shell(bottle config.Bottle) error {
@@ -50,11 +45,6 @@ func Shell(bottle config.Bottle) error {
 	c, err := incusClient()
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
-	}
-
-	err = addSharedDevice(bottle, c)
-	if err != nil {
-		return err
 	}
 
 	state, _, err := c.GetInstanceState(bottle.Name)
@@ -66,8 +56,14 @@ func Shell(bottle config.Bottle) error {
 		return fmt.Errorf("instance is %s, not Running", state.Status)
 	}
 
-	var idAddr string
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 
+	source := addSharedDevice(bottle, cwd, c)
+
+	var idAddr string
 	for _, net := range state.Network {
 		for _, addr := range net.Addresses {
 			log.Debug("found adr", "family", addr.Family, "value", addr.Address, "scope", addr.Scope)
@@ -106,6 +102,10 @@ func Shell(bottle config.Bottle) error {
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to exex ssh: %w", err)
+	}
+
+	if source != "" && (source == cwd) {
+		removeDevices(c, bottle.Name, []string{"shared"})
 	}
 
 	return nil
