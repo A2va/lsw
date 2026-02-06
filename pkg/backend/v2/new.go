@@ -328,6 +328,9 @@ func New(arch string, args NewV2Argument) error {
 	ramSize := fmt.Sprintf("%dGiB", args.Ram)
 	cpu := strconv.FormatUint(uint64(3), 10)
 
+	const qemuArgs = "-device intel-hda -device hda-duplex -audio spice"
+	qemuTcp := "-monitor tcp:" + monitorAddr + ",server,nowait"
+
 	instance := api.InstancesPost{
 		Name: args.Name,
 		Type: api.InstanceTypeVM,
@@ -340,7 +343,7 @@ func New(arch string, args NewV2Argument) error {
 				"limits.cpu":    cpu,
 				"limits.memory": ramSize,
 				// Expose QEMU monitor via TCP to send the "any key" bypass
-				"raw.qemu": "-device intel-hda -device hda-duplex -audio spice -monitor tcp:" + monitorAddr + ",server,nowait",
+				"raw.qemu": qemuArgs + " " + qemuTcp,
 				// Fix to avoid
 				// ❯ sudo cat /var/log/incus/win-1/qemu.log
 				// qemu-system-x86_64: -device hda-duplex: no default audio driver available
@@ -474,6 +477,23 @@ func New(arch string, args NewV2Argument) error {
 	}
 
 	removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
+
+	inst, etag, err := c.GetInstance(args.Name)
+	if err != nil {
+		log.Fatal("failed to fetch instance for cleanup", "err", err)
+	}
+
+	inst.Config["raw.qemu"] = qemuArgs
+
+	op, err = c.UpdateInstance(args.Name, inst.Writable(), etag)
+	if err != nil {
+		log.Fatal("update instance failed", "err", err)
+	}
+	err = op.Wait()
+	if err != nil {
+		log.Fatal("waiting operation failed", "err", err)
+	}
+
 	return nil
 }
 
