@@ -10,15 +10,15 @@ import (
 	incus "github.com/lxc/incus/client"
 )
 
-func addSharedDevice(bottle config.Bottle, cwd string, c incus.InstanceServer) string {
+func addSharedDevice(bottle config.Bottle, cwd string, c incus.InstanceServer) (string, error) {
 	inst, etag, err := c.GetInstance(bottle.Name)
 	if err != nil {
-		log.Fatal("get instance failed", "err", err)
+		return "", fmt.Errorf("failed to get instance for adding shared device: %w", err)
 	}
 
 	d, exist := inst.Devices["shared"]
 	if exist {
-		return d["source"]
+		return d["source"], nil
 	}
 
 	inst.Devices["shared"] = map[string]string{
@@ -29,14 +29,13 @@ func addSharedDevice(bottle config.Bottle, cwd string, c incus.InstanceServer) s
 
 	op, err := c.UpdateInstance(bottle.Name, inst.Writable(), etag)
 	if err != nil {
-		log.Fatal("update instance failed", "err", err)
+		return "", fmt.Errorf("failed to update instance to add shared device: %w", err)
 	}
-	err = op.Wait()
-	if err != nil {
-		log.Fatal("waiting operation failed", "err", err)
+	if err := op.Wait(); err != nil {
+		return "", fmt.Errorf("waiting for add shared device operation failed: %w", err)
 	}
 
-	return ""
+	return "", nil
 }
 
 func Shell(bottle config.Bottle) error {
@@ -61,7 +60,10 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	source := addSharedDevice(bottle, cwd, c)
+	source, err := addSharedDevice(bottle, cwd, c)
+	if err != nil {
+		return fmt.Errorf("failed to add shared device: %w", err)
+	}
 
 	var idAddr string
 	for _, net := range state.Network {
@@ -105,7 +107,11 @@ func Shell(bottle config.Bottle) error {
 	}
 
 	if source != "" && (source == cwd) {
-		removeDevices(c, bottle.Name, []string{"shared"})
+		err = removeDevices(c, bottle.Name, []string{"shared"})
+		if err != nil {
+			log.Error("failed to remove shared device", "err", err)
+			// Consider more robust error handling if this is critical.
+		}
 	}
 
 	return nil

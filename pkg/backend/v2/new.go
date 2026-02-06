@@ -476,22 +476,17 @@ func New(arch string, args NewV2Argument) error {
 		cfg.DefaultBottle = args.Name
 	}
 
-	removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
-
-	inst, etag, err := c.GetInstance(args.Name)
+	err = removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
 	if err != nil {
-		log.Fatal("failed to fetch instance for cleanup", "err", err)
+		log.Fatal("failed to remove installation devices", "err", err)
 	}
 
-	inst.Config["raw.qemu"] = qemuArgs
-
-	op, err = c.UpdateInstance(args.Name, inst.Writable(), etag)
+	err = updateInstance(c, args.Name, func(inst *api.Instance) error {
+		inst.Config["raw.qemu"] = qemuArgs
+		return nil
+	})
 	if err != nil {
-		log.Fatal("update instance failed", "err", err)
-	}
-	err = op.Wait()
-	if err != nil {
-		log.Fatal("waiting operation failed", "err", err)
+		log.Fatal("failed to update raw.qemu config", "err", err)
 	}
 
 	return nil
@@ -507,42 +502,43 @@ func timeout(q <-chan string, d time.Duration) string {
 	}
 }
 
-func addDevices(c incus.InstanceServer, vmName string, devices map[string]map[string]string) {
+// updateInstance applies changes to an Incus instance's configuration and devices.
+// The modifyFn function receives the current instance object and should apply
+// any desired changes to its Config and Devices fields.
+func updateInstance(c incus.InstanceServer, vmName string, modifyFn func(*api.Instance) error) error {
 	inst, etag, err := c.GetInstance(vmName)
 	if err != nil {
-		log.Fatal("failed to fetch instance for cleanup", "err", err)
+		return fmt.Errorf("failed to fetch instance '%s': %w", vmName, err)
 	}
 
-	maps.Copy(inst.Devices, devices)
+	if err := modifyFn(inst); err != nil {
+		return fmt.Errorf("failed to apply modifications to instance '%s': %w", vmName, err)
+	}
 
 	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
 	if err != nil {
-		log.Fatal("update instance failed", "err", err)
+		return fmt.Errorf("failed to update instance '%s': %w", vmName, err)
 	}
-	err = op.Wait()
-	if err != nil {
-		log.Fatal("waiting operation failed", "err", err)
+	if err := op.Wait(); err != nil {
+		return fmt.Errorf("waiting for instance '%s' update operation failed: %w", vmName, err)
 	}
+	return nil
 }
 
-func removeDevices(c incus.InstanceServer, vmName string, devices []string) {
-	inst, etag, err := c.GetInstance(vmName)
-	if err != nil {
-		log.Fatal("failed to fetch instance", "err", err)
-	}
+func addDevices(c incus.InstanceServer, vmName string, devicesToAdd map[string]map[string]string) error {
+	return updateInstance(c, vmName, func(inst *api.Instance) error {
+		maps.Copy(inst.Devices, devicesToAdd)
+		return nil
+	})
+}
 
-	for _, device := range devices {
-		delete(inst.Devices, device)
-	}
-
-	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
-	if err != nil {
-		log.Fatal("updating instance failed", "err", err)
-	}
-	err = op.Wait()
-	if err != nil {
-		log.Fatal("waiting operation failed", "err", err)
-	}
+func removeDevices(c incus.InstanceServer, vmName string, devicesToRemove []string) error {
+	return updateInstance(c, vmName, func(inst *api.Instance) error {
+		for _, device := range devicesToRemove {
+			delete(inst.Devices, device)
+		}
+		return nil
+	})
 }
 
 func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, devicesToAdd map[string]map[string]string) (*incus.EventListener, *incus.EventTarget) {
@@ -575,8 +571,16 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, device
 			}
 
 			if lifecycle.Action == "instance-restarted" && countRestart == 1 {
-				removeDevices(c, vmName, []string{"install"})
-				addDevices(c, vmName, devicesToAdd)
+				err := removeDevices(c, vmName, []string{"install"})
+				if err != nil {
+					log.Error("failed to remove install ISO", "err", err)
+					// Decide how to handle this critical error. For now, log and continue, but this might need a more robust error path.
+				}
+				err = addDevices(c, vmName, devicesToAdd)
+				if err != nil {
+					log.Error("failed to add devices", "err", err)
+					// Decide how to handle this critical error.
+				}
 				log.Debug("install ISO removed.")
 			}
 
