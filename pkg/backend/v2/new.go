@@ -3,7 +3,6 @@ package v2
 import (
 	"encoding/json"
 	"fmt"
-	"maps"
 	"net"
 	"os"
 	"os/exec"
@@ -500,45 +499,6 @@ func timeout(q <-chan string, d time.Duration) string {
 	case <-time.After(d):
 		return ""
 	}
-}
-
-// updateInstance applies changes to an Incus instance's configuration and devices.
-// The modifyFn function receives the current instance object and should apply
-// any desired changes to its Config and Devices fields.
-func updateInstance(c incus.InstanceServer, vmName string, modifyFn func(*api.Instance) error) error {
-	inst, etag, err := c.GetInstance(vmName)
-	if err != nil {
-		return fmt.Errorf("failed to fetch instance '%s': %w", vmName, err)
-	}
-
-	if err := modifyFn(inst); err != nil {
-		return fmt.Errorf("failed to apply modifications to instance '%s': %w", vmName, err)
-	}
-
-	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
-	if err != nil {
-		return fmt.Errorf("failed to update instance '%s': %w", vmName, err)
-	}
-	if err := op.Wait(); err != nil {
-		return fmt.Errorf("waiting for instance '%s' update operation failed: %w", vmName, err)
-	}
-	return nil
-}
-
-func addDevices(c incus.InstanceServer, vmName string, devicesToAdd map[string]map[string]string) error {
-	return updateInstance(c, vmName, func(inst *api.Instance) error {
-		maps.Copy(inst.Devices, devicesToAdd)
-		return nil
-	})
-}
-
-func removeDevices(c incus.InstanceServer, vmName string, devicesToRemove []string) error {
-	return updateInstance(c, vmName, func(inst *api.Instance) error {
-		for _, device := range devicesToRemove {
-			delete(inst.Devices, device)
-		}
-		return nil
-	})
 }
 
 func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, devicesToAdd map[string]map[string]string) (*incus.EventListener, *incus.EventTarget) {
