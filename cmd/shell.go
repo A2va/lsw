@@ -9,6 +9,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func runShellCommand(cmd *cobra.Command, args []string) error {
+	bottleName := ""
+	if len(args) >= 1 {
+		bottleName = args[0]
+	}
+	bottle, found := backend.GetBottle(bottleName)
+
+	if !found {
+		return fmt.Errorf("not found the bottle")
+	}
+
+	if bottle.Version == "v1" {
+		return v1.Shell(bottle)
+	} else if bottle.Version == "v2" {
+		return v2.Shell(bottle)
+	}
+	return fmt.Errorf("not a valid backend")
+}
+
 func shellCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "shell [bottle-name]",
@@ -23,30 +42,7 @@ Example:
   lsw shell # Uses the default configured bottle`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			bottleName := ""
-			if len(args) >= 1 {
-				bottleName = args[0]
-			}
-			bottle, found := backend.GetBottle(bottleName)
-
-			if !found {
-				return fmt.Errorf("not found the bottle")
-			}
-
-			askpass, _ := cmd.Flags().GetBool("askpass")
-			if askpass {
-				fmt.Print(bottle.Password)
-				return nil
-			}
-
-			if bottle.Version == "v1" {
-				return v1.Shell(bottle)
-			} else if bottle.Version == "v2" {
-				return v2.Shell(bottle)
-			}
-			return fmt.Errorf("not a valid backend")
-		},
+		RunE:          runShellCommand,
 	}
 	return cmd
 }

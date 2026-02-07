@@ -79,13 +79,12 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 	cmd := &cobra.Command{
 		Use:   "lsw",
 		Short: "Manage isolated Windows environments (bottles) from Linux",
-		Long: `LSW (Linux Subsystem for Windows) allows you to spin up and manage isolated Windows environments, referred to as "bottles," directly from your Linux machine.
+		Long: `LSW (Linux Subsystem for Windows) manages isolated Windows environments ("bottles") from Linux.
 
-		It supports two backends:
-		- v1: A fast and lightweight Wine-based container.
-		- v2: A full Windows virtual machine powered by Incus.
-
-		LSW enables you to create, access (shell into), start, and stop these Windows environments, facilitating cross-platform development and testing.`,
+Features:
+  - Supports v1 (Wine-based containers) and v2 (Incus VMs).
+  - Create, access (shell), start, and stop Windows environments.
+  - Facilitates cross-platform development and testing.`,
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -109,6 +108,12 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 			if err != nil {
 				log.Error("error loading config file", "err", err)
 			}
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return runShellCommand(cmd, args)
+			}
+			return nil
 		},
 	}
 
