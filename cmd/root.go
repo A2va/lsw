@@ -77,8 +77,15 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 		exit: exit,
 	}
 	cmd := &cobra.Command{
-		Use:           "lsw",
-		Short:         "WSL like",
+		Use:   "lsw",
+		Short: "Manage isolated Windows environments (bottles) from Linux",
+		Long: `LSW (Linux Subsystem for Windows) allows you to spin up and manage isolated Windows environments, referred to as "bottles," directly from your Linux machine.
+
+		It supports two backends:
+		- v1: A fast and lightweight Wine-based container.
+		- v2: A full Windows virtual machine powered by Incus.
+
+		LSW enables you to create, access (shell into), start, and stop these Windows environments, facilitating cross-platform development and testing.`,
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -105,7 +112,7 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 		},
 	}
 
-	cmd.PersistentFlags().BoolVar(&root.debug, "debug", false, "Enable debug mode")
+	cmd.PersistentFlags().BoolVar(&root.debug, "debug", false, "Enable debug mode.")
 
 	cmd.AddCommand(newCmd())
 	cmd.AddCommand(shellCmd())

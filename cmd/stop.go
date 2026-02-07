@@ -11,8 +11,15 @@ import (
 
 func stopCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "stop",
-		Short:         "Stop a running bottle",
+		Use:           "stop [bottle-name]",
+		Short:         "Stop a running Windows bottle",
+		Long: `Gracefully shut down a running Windows bottle.
+
+You can specify the bottle name, or LSW will use the default configured bottle.
+
+Example:
+  lsw stop my-windows-bottle
+  lsw stop # Stops the default configured bottle`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

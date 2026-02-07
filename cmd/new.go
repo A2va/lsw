@@ -70,7 +70,7 @@ func autoName(cfg *config.Config) string {
 func newV1Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "v1",
-		Short: "Create a bottle using v1 backend",
+		Short: "Create a new bottle using the v1 (Wine-based container) backend.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.Get()
 
@@ -92,7 +92,7 @@ func newV1Cmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().String("provider", "", "Force a bottle to have a specific provider instead of the system detetec one.")
+	cmd.Flags().String("provider", "", "Force a bottle to use a specific provider (e.g., 'docker' or 'podman') instead of the system-detected one.")
 
 	return cmd
 }
@@ -100,7 +100,7 @@ func newV1Cmd() *cobra.Command {
 func newV2Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "v2",
-		Short: "Create a bottle using v2 backend",
+		Short: "Create a new bottle using the v2 (Incus VM) backend.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.Get()
 
@@ -147,8 +147,8 @@ func newV2Cmd() *cobra.Command {
 	cmd.Flags().Uint("disk", 25, "Set the disk space in GiB")
 	cmd.Flags().Uint("cpus", 4, "Set the number of cpu cores")
 
-	cmd.Flags().String("password", "lsw", "User password")
-	cmd.Flags().String("user", os.Getenv("USER"), "Username")
+	cmd.Flags().String("password", "lsw", "Set the user password for the Windows VM (default: \"lsw\").")
+	cmd.Flags().String("user", os.Getenv("USER"), "Set the username for the Windows VM (default: current system user).")
 	return cmd
 }
 
@@ -156,12 +156,12 @@ func newCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "new",
 		Aliases:       []string{"n"},
-		Short:         "Create a new bottle. If you want to create a bottle without requiring an internet connection, first pass the init flag.",
+		Short:         "Create a new Windows bottle. Use the 'init' flag to download necessary files for offline bottle creation.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
-	cmd.PersistentFlags().Bool("init", false, "Download any necessary files then exit without creating a bottle")
+	cmd.PersistentFlags().Bool("init", false, "Download any necessary files for a backend and exit, useful for preparing offline bottle creation.")
 	cmd.PersistentFlags().StringP("name", "n", "", "Define a name for the bottle, if not provided an automatic name will be given")
 
 	cmd.AddCommand(newV2Cmd())

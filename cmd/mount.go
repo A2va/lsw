@@ -9,8 +9,19 @@ import (
 
 func mountCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "mount",
-		Short:         "Add a mount directory to a bottle",
+		Use:   "mount [bottle-name] <directory-path>",
+		Short: "Mount a host directory into a Windows bottle",
+		Long: `Mount a directory from your Linux host into a specified Windows bottle.
+
+You can specify the bottle name, or LSW will use the default configured bottle.
+
+Notes:
+  - For v2 bottles (Incus VM), automatic mounting usually occurs from the current working directory during 'lsw shell'.
+  - For v1 bottles, restart the current shell session for mounts to take effect.
+
+Example:
+  lsw mount my-windows-bottle ~/my-project
+  lsw mount ~/my-project # Mounts into the default configured bottle`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

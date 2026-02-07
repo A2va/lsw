@@ -11,9 +11,16 @@ import (
 
 func shellCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "shell",
-		Aliases:       []string{"s"},
-		Short:         "Enter a windows shell",
+		Use:     "shell [bottle-name]",
+		Aliases: []string{"s"},
+		Short:   "Enter an interactive shell into a Windows bottle",
+		Long: `Enter an interactive command-line interface (CLI) directly within a specified Windows bottle.
+
+You can specify the bottle name, or LSW will use the default configured bottle.
+
+Example:
+  lsw shell my-windows-bottle
+  lsw shell # Uses the default configured bottle`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
