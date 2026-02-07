@@ -13,7 +13,7 @@ func New(name string, provider string) error {
 	}
 	Init(provider)
 
-	log.Debug("new bottle on v1 backend", "name", name)
+	log.Info("creating new bottle (v1 backend)", "name", name)
 
 	var err error
 	if provider == "docker" {
@@ -26,7 +26,7 @@ func New(name string, provider string) error {
 		return err
 	}
 
-	log.Debug("update config to add bottle")
+	log.Info("updating config to add new bottle")
 	cfg := config.Get()
 
 	// Update the config

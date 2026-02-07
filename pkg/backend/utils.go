@@ -101,7 +101,7 @@ func downloadFile(url string, filepath string) error {
 		return err
 	}
 
-	log.Debug("download file", "url", url, "path", filepath)
+	log.Info("download file", "url", url, "path", filepath)
 	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {
@@ -211,7 +211,7 @@ func GetBottle(name string) (config.Bottle, bool) {
 		bottleName = cfg.DefaultBottle
 	}
 
-	log.Debug("bottle", "name", name)
+	log.Info("retrieving bottle", "name", bottleName)
 
 	var bottle config.Bottle
 	found := false

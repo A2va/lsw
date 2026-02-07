@@ -175,7 +175,7 @@ func buildImage(c *client.Client) error {
 		_, err := c.ImageInspect(context.Background(), targetTag)
 		if err == nil {
 			// No error = Image exists.
-			log.Debug("image already exists. skipping build.")
+			log.Info("image already exists, skipping build.")
 			return nil
 		}
 
@@ -226,7 +226,7 @@ func buildImage(c *client.Client) error {
 }
 
 func Init() {
-	log.Debug("init docker provider")
+	log.Info("initializing Docker provider")
 
 	c, err := client.New(client.FromEnv)
 	if err != nil {
@@ -245,7 +245,7 @@ func Init() {
 	}
 
 	if migration.OldImagesWasRemoved {
-		log.Debug("restore pruned containers")
+		log.Info("restoring pruned containers")
 		version := config.GetVersion()
 		image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
 		for _, container := range migration.ContainerInfo {

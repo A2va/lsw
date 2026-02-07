@@ -151,7 +151,7 @@ func buildImage(c context.Context) error {
 		}
 
 		if exist {
-			log.Debug("image already exists. skipping build.")
+			log.Info("image already exists, skipping build.")
 			return nil
 		}
 	}
@@ -186,7 +186,7 @@ func buildImage(c context.Context) error {
 }
 
 func Init() {
-	log.Debug("init podman provider")
+	log.Info("initializing Podman provider")
 
 	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
 	if err != nil {

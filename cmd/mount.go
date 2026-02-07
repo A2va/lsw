@@ -9,7 +9,7 @@ import (
 
 func mountCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "start",
+		Use:           "mount",
 		Short:         "Add a mount directory to a bottle",
 		SilenceUsage:  true,
 		SilenceErrors: true,

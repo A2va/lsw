@@ -112,7 +112,7 @@ func Init() {
 
 	_, err = downloadWindowsIso()
 	if err != nil {
-		log.Debug("cannot download Windows ISO, this is normal for now")
+		log.Warn("cannot download Windows ISO (this is currently expected behavior)")
 	}
 
 	redisPath, err := downloadVsRedistribuable()

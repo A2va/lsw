@@ -9,7 +9,7 @@ import (
 )
 
 func Start(bottle config.Bottle) error {
-	log.Debug("start bottle on v2", "name", bottle.Name)
+	log.Info("starting bottle (v2 backend)", "name", bottle.Name)
 	c, err := incusClient()
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)

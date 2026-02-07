@@ -267,7 +267,7 @@ func sendMonitorKeys(key string, monitorAddr string, count int) {
 	for range count {
 		_, err := fmt.Fprintf(conn, "sendkey %s\n", key)
 		if err != nil {
-			log.Debug("error during sendkey", "err", err)
+			log.Warn("failed to send key to QEMU monitor", "err", err)
 			return
 		}
 		time.Sleep(500 * time.Millisecond)
@@ -290,7 +290,7 @@ func getFreePort() (port int, err error) {
 func New(arch string, args NewV2Argument) error {
 	Init()
 
-	log.Debug("new bottle on v1 backend", "name", args.Name)
+	log.Info("creating new bottle (v2 backend)", "name", args.Name)
 
 	if arch != "amd64" {
 		log.Fatal("not supported architecture")
@@ -427,40 +427,40 @@ func New(arch string, args NewV2Argument) error {
 	q := make(chan string)
 	listener, evt := eventHandler(c, args.Name, q, otherDevices)
 
-	log.Debug("installing Windows Files")
+	log.Info("installing Windows files")
 	fmt.Print("\rStatus: [1/3] Installing Windows Files...           ")
 
 	ev := timeout(q, 7*time.Minute)
 	// Windows have taken more than 8 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
-		log.Debug("missing first restart")
+		log.Warn("VM did not restart within expected time during Windows installation")
 		return fmt.Errorf("failed to complete the first install step")
 	}
 
-	log.Debug("configuring System Settings")
+	log.Info("configuring system settings")
 	fmt.Print("\rStatus: [2/3] Configuring System Settings...        ")
 
 	ev = timeout(q, 4*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
-		log.Debug("missing second restart")
+		log.Warn("VM did not restart within expected time during system settings configuration")
 		return fmt.Errorf("failed to complete the second install step")
 	}
 
-	log.Debug("finishing Setup & Scripts")
+	log.Info("finishing setup and scripts")
 	fmt.Print("\rStatus: [3/3] Finishing Setup & Scripts...          ")
 
 	ev = timeout(q, 4*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-shutdown" {
-		log.Debug("missing Shutdown")
+		log.Warn("VM did not shut down within expected time during Windows installation")
 		return fmt.Errorf("failed to shutdown at the end of the install")
 	}
 
 	listener.RemoveHandler(evt)
 	listener.Disconnect()
 
-	log.Debug("update config to add bottle")
+	log.Info("updating config to add new bottle")
 	cfg := config.Get()
 
 	// Update the config
@@ -507,7 +507,7 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, device
 		log.Fatal("failed to connect to event stream", "err", err)
 	}
 
-	log.Debug("connected to event stream", "vm", vmName)
+	log.Info("connected to Incus event stream", "vm", vmName)
 
 	countRestart := 0
 
@@ -541,7 +541,7 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, device
 					log.Error("failed to add devices", "err", err)
 					// Decide how to handle this critical error.
 				}
-				log.Debug("install ISO removed.")
+				log.Info("install ISO removed.")
 			}
 
 			if lifecycle.Action == "instance-restarted" || lifecycle.Action == "instance-shutdown" {

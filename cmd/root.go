@@ -38,8 +38,10 @@ func initLog(debug bool) {
 		log.SetOutput(fileLogger)
 	}
 
-	log.SetTimeFormat(time.Kitchen)
 	log.SetReportTimestamp(true)
+	log.SetReportCaller(true)
+
+	log.SetTimeFormat(time.DateTime)
 }
 
 func Execute(version string, exit func(int), args []string) {

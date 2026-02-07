@@ -52,7 +52,7 @@ func execMethod(c context.Context, nameOrID string) error {
 
 func Shell(bottle config.Bottle) error {
 	// FIXME Cannot create two shell session of the same bottle
-	log.Debug("shell into container using podman provider", "name", bottle.Name)
+	log.Info("shelling into container (podman)", "name", bottle.Name)
 
 	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
 	if err != nil {

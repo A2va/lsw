@@ -78,7 +78,7 @@ func newV1Cmd() *cobra.Command {
 			if name == "" {
 				name = autoName(cfg)
 			}
-			log.Debug("auto naming", "name", name)
+			log.Info("auto-generated bottle name", "name", name)
 
 			provider, _ := cmd.Flags().GetString("provider")
 
@@ -115,7 +115,7 @@ func newV2Cmd() *cobra.Command {
 				return nil
 			}
 
-			log.Debug("auto naming", "name", name)
+			log.Info("auto-generated bottle name", "name", name)
 
 			ram, err := cmd.Flags().GetUint("ram")
 			if err != nil {
