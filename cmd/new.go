@@ -16,6 +16,7 @@ import (
 
 // Give a new name to a bottle
 func newName(names []string) string {
+	// FIXME if there is only one name with win-x, win will not be retaken again
 	if len(names) == 0 {
 		return "win"
 	}
