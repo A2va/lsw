@@ -30,7 +30,7 @@ func getDockerfile() (string, error) {
 	var dockerfilePath string
 	if version.Version == "dev" {
 		wd, _ := os.Getwd()
-		dockerfilePath = path.Join(wd, "Dockerfile.v1")
+		dockerfilePath = path.Join(wd, "assets", "v1", "Dockerfile")
 	} else {
 		_, err := backend.DownloadFileIfNeeded(url, "Dockerfile.v1")
 		if err != nil {
