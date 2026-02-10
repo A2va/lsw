@@ -11,11 +11,9 @@ import (
 
 func startCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "start [bottle-name]",
-		Short:         "Start a specific Windows bottle",
-		Long: `Initiate a previously created and stopped Windows bottle.
-
-You can specify the bottle name, or LSW will use the default configured bottle.
+		Use:   "start [bottle-name]",
+		Short: "Start a specific Windows bottle",
+		Long: `Can specify the bottle name, or LSW will use the default configured bottle.
 
 Example:
   lsw start my-windows-bottle

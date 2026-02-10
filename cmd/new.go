@@ -105,17 +105,19 @@ func newV2Cmd() *cobra.Command {
 			cfg := config.Get()
 
 			name, _ := cmd.Flags().GetString("name")
+			if _, found := backend.GetBottle(name); found {
+				return fmt.Errorf("bottle with name '%s' already exists", name)
+			}
 			if name == "" {
 				name = autoName(cfg)
 			}
+			log.Info("auto-generated bottle name", "name", name)
 
 			init, _ := cmd.Flags().GetBool("init")
 			if init {
 				v2.Init()
 				return nil
 			}
-
-			log.Info("auto-generated bottle name", "name", name)
 
 			ram, err := cmd.Flags().GetUint("ram")
 			if err != nil {

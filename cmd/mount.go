@@ -11,9 +11,7 @@ func mountCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mount [bottle-name] <directory-path>",
 		Short: "Mount a host directory into a Windows bottle",
-		Long: `Mount a directory from your Linux host into a specified Windows bottle.
-
-You can specify the bottle name, or LSW will use the default configured bottle.
+		Long: `Can specify the bottle name, or LSW will use the default configured bottle.
 
 Notes:
   - For v2 bottles (Incus VM), automatic mounting usually occurs from the current working directory during 'lsw shell'.

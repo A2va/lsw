@@ -33,9 +33,7 @@ func shellCmd() *cobra.Command {
 		Use:     "shell [bottle-name]",
 		Aliases: []string{"s"},
 		Short:   "Enter an interactive shell into a Windows bottle",
-		Long: `Enter an interactive command-line interface (CLI) directly within a specified Windows bottle.
-
-You can specify the bottle name, or LSW will use the default configured bottle.
+		Long: `Can specify the bottle name, or LSW will use the default configured bottle.
 
 Example:
   lsw shell my-windows-bottle

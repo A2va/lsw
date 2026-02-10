@@ -15,7 +15,7 @@ func stopCmd() *cobra.Command {
 		Short:         "Stop a running Windows bottle",
 		Long: `Gracefully shut down a running Windows bottle.
 
-You can specify the bottle name, or LSW will use the default configured bottle.
+Can specify the bottle name, or LSW will use the default configured bottle.
 
 Example:
   lsw stop my-windows-bottle
