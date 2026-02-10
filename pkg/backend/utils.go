@@ -224,5 +224,6 @@ func GetBottle(name string) (config.Bottle, bool) {
 		}
 	}
 
+	log.Debug("bottle", "value", bottle, "found", found)
 	return bottle, found
 }
