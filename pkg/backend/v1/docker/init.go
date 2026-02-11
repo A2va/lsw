@@ -15,8 +15,6 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	"github.com/containerd/errdefs"
-	"github.com/moby/moby/api/types/container"
-	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
 )
 
@@ -81,25 +79,17 @@ func createBuildContext(dockerfilePath string) (io.Reader, error) {
 	return buf, nil
 }
 
-type ContainerMigration struct {
-	ContainerInfo       []container.InspectResponse
-	OldImagesWasRemoved bool
-}
-
-// Remove old containers and images, return container info
-func pruneOldVersions(c *client.Client) (ContainerMigration, error) {
+// Delete running containers and remove old images
+func pruneOldImages(c *client.Client) error {
 	f := make(client.Filters).Add("reference", "lsw-v1:*")
 
 	res, err := c.ImageList(context.Background(), client.ImageListOptions{All: true, Filters: f})
 	if err != nil {
-		return ContainerMigration{}, nil
+		return nil
 	}
 
 	version := config.GetVersion()
 	currentTag := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
-
-	oldWasRemoved := false
-	inspectContainers := []container.InspectResponse{}
 
 	images := res.Items
 	for _, image := range images {
@@ -129,41 +119,29 @@ func pruneOldVersions(c *client.Client) (ContainerMigration, error) {
 			f := make(client.Filters).Add("ancestor", image.ID)
 			res, err := c.ContainerList(context.Background(), client.ContainerListOptions{All: true, Filters: f})
 			if err != nil {
-				return ContainerMigration{}, err
+				return err
 			}
 
 			// It should be safe to delete the container since we use volume to store data
 			containers := res.Items
 			for _, container := range containers {
-				log.Debug("containers running on old image", "id", container.ID)
-
-				res, err := c.ContainerInspect(context.Background(), container.ID, client.ContainerInspectOptions{})
-				if err != nil {
-					return ContainerMigration{}, err
-				}
-
-				inspectContainers = append(inspectContainers, res.Container)
-
 				_, err = c.ContainerRemove(context.Background(), container.ID, client.ContainerRemoveOptions{Force: true})
 				if err != nil {
-					return ContainerMigration{}, err
+					return err
 				}
 
 				log.Debug("prune container", "id", container.ID)
 			}
 
-			// Delete image
-			oldWasRemoved = true
-
 			log.Debug("remove old image", "id", image.ID)
 			_, err = c.ImageRemove(context.Background(), image.ID, client.ImageRemoveOptions{Force: true, PruneChildren: true})
 			if err != nil {
-				return ContainerMigration{}, err
+				return err
 			}
 		}
 	}
 
-	return ContainerMigration{OldImagesWasRemoved: oldWasRemoved, ContainerInfo: inspectContainers}, nil
+	return nil
 }
 
 func buildImage(c *client.Client) error {
@@ -234,7 +212,7 @@ func Init() {
 	}
 	defer c.Close()
 
-	migration, err := pruneOldVersions(c)
+	err = pruneOldImages(c)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -242,23 +220,5 @@ func Init() {
 	err = buildImage(c)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	if migration.OldImagesWasRemoved {
-		log.Info("restoring pruned containers")
-		version := config.GetVersion()
-		image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
-		for _, container := range migration.ContainerInfo {
-			// Create the same containers using the new image
-			container.Config.Image = image
-
-			createOptions := client.ContainerCreateOptions{
-				Name:             container.Name,
-				Config:           container.Config,
-				HostConfig:       container.HostConfig,
-				NetworkingConfig: &network.NetworkingConfig{EndpointsConfig: container.NetworkSettings.Networks},
-			}
-			c.ContainerCreate(context.Background(), createOptions)
-		}
 	}
 }

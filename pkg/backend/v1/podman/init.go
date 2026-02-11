@@ -12,13 +12,11 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	buildahDefine "github.com/containers/buildah/define"
-	"github.com/containers/podman/v6/libpod/define"
+
 	"github.com/containers/podman/v6/pkg/bindings"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/containers/podman/v6/pkg/bindings/images"
 	"github.com/containers/podman/v6/pkg/domain/entities/types"
-	"github.com/containers/podman/v6/pkg/specgen"
-	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 func getDockerfile() (string, error) {
@@ -49,12 +47,8 @@ func getDockerfile() (string, error) {
 	return dockerfilePath, nil
 }
 
-type ContainerMigration struct {
-	ContainerInfo       []*define.InspectContainerData
-	OldImagesWasRemoved bool
-}
-
-func pruneOldVersions(c context.Context) (ContainerMigration, error) {
+// Delete running containers and remove old images
+func pruneOldImages(c context.Context) error {
 	f := map[string][]string{"reference": []string{"lsw-v1:*"}}
 	a := true
 
@@ -64,14 +58,11 @@ func pruneOldVersions(c context.Context) (ContainerMigration, error) {
 	})
 
 	if err != nil {
-		return ContainerMigration{}, err
+		return err
 	}
 
 	version := config.GetVersion()
 	currentTag := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
-
-	oldWasRemoved := false
-	inspectContainers := []*define.InspectContainerData{}
 
 	imagesToRemove := []string{}
 
@@ -101,30 +92,20 @@ func pruneOldVersions(c context.Context) (ContainerMigration, error) {
 			f := map[string][]string{"ancestor": []string{"lsw-v1:*"}}
 			containerss, err := containers.List(c, &containers.ListOptions{Filters: f})
 			if err != nil {
-				return ContainerMigration{}, err
+				return err
 			}
 
 			for _, container := range containerss {
 				log.Debug("containers running on old image", "id", container.ID)
 
-				res, err := containers.Inspect(c, container.ID, &containers.InspectOptions{})
-				if err != nil {
-					return ContainerMigration{}, err
-				}
-
-				inspectContainers = append(inspectContainers, res)
-
 				t := true
 				_, err = containers.Remove(c, container.ID, &containers.RemoveOptions{Force: &t})
 				if err != nil {
-					return ContainerMigration{}, err
+					return err
 				}
 
 				log.Debug("prune container", "id", container.ID)
 			}
-
-			oldWasRemoved = true
-			imagesToRemove = append(imagesToRemove, image.ID)
 		}
 	}
 
@@ -132,10 +113,10 @@ func pruneOldVersions(c context.Context) (ContainerMigration, error) {
 	t := true
 	_, errs := images.Remove(c, imagesToRemove, &images.RemoveOptions{Force: &t})
 	if len(errs) > 0 {
-		return ContainerMigration{}, errors.Join(errs...)
+		return errors.Join(errs...)
 	}
 
-	return ContainerMigration{OldImagesWasRemoved: oldWasRemoved, ContainerInfo: inspectContainers}, nil
+	return nil
 
 }
 
@@ -193,55 +174,10 @@ func Init() {
 		log.Fatal(err)
 	}
 
-	migration, err := pruneOldVersions(c)
+	err = pruneOldImages(c)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	buildImage(c)
-
-	if migration.OldImagesWasRemoved {
-		version := config.GetVersion()
-		image := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
-		for _, container := range migration.ContainerInfo {
-			s := specgen.NewSpecGenerator(image, false)
-
-			s.Name = container.Name + "-recreated"
-			s.Env = make(map[string]string)
-			for _, env := range container.Config.Env {
-				// Convert "KEY=VAL" slice to map
-				parts := strings.SplitN(env, "=", 2)
-				if len(parts) == 2 {
-					s.Env[parts[0]] = parts[1]
-				}
-			}
-			s.Command = container.Config.Cmd
-			s.Entrypoint = container.Config.Entrypoint
-			s.Stdin = &container.Config.OpenStdin
-			s.Terminal = &container.Config.Tty
-
-			// s.UserNS = specgen.Namespace{
-			// 	NSMode: specgen.KeepID,
-			// }
-
-			for _, mount := range container.Mounts {
-				if mount.Type == "volume" {
-					s.Volumes = append(s.Volumes, &specgen.NamedVolume{
-						Name:    mount.Name,
-						Dest:    mount.Destination,
-						Options: mount.Options,
-						SubPath: mount.SubPath,
-					})
-				} else {
-					s.Mounts = append(s.Mounts, specs.Mount{
-						Type:        mount.Type,
-						Destination: mount.Destination,
-						Source:      mount.Source,
-						Options:     mount.Options,
-					})
-				}
-			}
-		}
-	}
-
 }
