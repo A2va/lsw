@@ -28,6 +28,24 @@ func downloadVirtio() (string, error) {
 	return backend.DownloadFileIfNeeded(url, "virtio.iso")
 }
 
+func downloadIncusAgent() (string, error) {
+	c, err := incusClient()
+	if err != nil {
+		return "", err
+	}
+
+	server, _, err := c.GetServer()
+	if err != nil {
+		return "", err
+	}
+
+	incusVersion := server.Environment.ServerVersion
+
+	// Make sure that incus agent version match the system one
+	url := fmt.Sprintf("https://github.com/lxc/incus/releases/download/v%s/bin.windows.incus-agent.x86_64.exe", incusVersion)
+	return backend.DownloadFileIfNeeded(url, "incus-agent.exe")
+}
+
 func downloadUnattendAssets() error {
 	version := config.GetVersion()
 	if version.Version == "dev" {
@@ -62,7 +80,7 @@ func downloadWindowsIso() (string, error) {
 }
 
 // Create a iso to install some software without internet connection
-func createSoftwareISO(winfspPath string, openSSHPath string, redisPath string) error {
+func createSoftwareISO(winfspPath string, openSSHPath string, redisPath string, incusAgentPath string) error {
 	cachedir, err := backend.GetCacheDir()
 	if err != nil {
 		log.Fatal("cannot get cache directory")
@@ -77,6 +95,7 @@ func createSoftwareISO(winfspPath string, openSSHPath string, redisPath string) 
 		backend.CreateDir(tmpDir, 0755)
 		backend.CreateDir(openSSHtmpDir, 0755)
 
+		gorecurcopy.Copy(incusAgentPath, path.Join(tmpDir, "incus-agent.exe"))
 		gorecurcopy.Copy(winfspPath, path.Join(tmpDir, "winfsp.msi"))
 		gorecurcopy.Copy(redisPath, path.Join(tmpDir, "vc_redist.exe"))
 		gorecurcopy.CopyDirectory(openSSHPath, openSSHtmpDir)
@@ -120,7 +139,12 @@ func Init() {
 		log.Fatal("cannot download Visual C++ Redistribuable")
 	}
 
-	err = createSoftwareISO(winfspPath, openSSHPath, redisPath)
+	incusAgentPath, err := downloadIncusAgent()
+	if err != nil {
+		log.Fatal("cannot download incus agent")
+	}
+
+	err = createSoftwareISO(winfspPath, openSSHPath, redisPath, incusAgentPath)
 	if err != nil {
 		log.Fatal("cannot create software ISO")
 	}

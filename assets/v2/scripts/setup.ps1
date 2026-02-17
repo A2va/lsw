@@ -97,6 +97,25 @@ function Install-IncusAgent {
     if (-not $drive) {
         Write-Warning "Incus installer not found."; return
     }
+
+    # Fix because Fedora incus-agent package doesn't package windows agent binaries
+    $incusAgent = Test-Path "$($drive):\incus-agent.exe"
+
+
+    if (-not $incusAgent) {
+        New-Item "C:\Program Files\Incus-Agent" -ItemType Directory
+
+        $agentDrive = Get-DriveByFile "incus-agent.exe"
+        if (-not $agentDrive) {
+            Write-Warning "incus-agent.exe not found on any drive."
+            return
+        }
+
+        Copy-Item "$($agentDrive):\incus-agent.exe" -Destination "C:\Program Files\Incus-Agent"
+        New-Item "C:\ProgramData\Incus-Agent" -ItemType Directory
+        Copy-Item "$($agentDrive):\incus-agent.exe" -Destination "C:\ProgramData\Incus-Agent"
+    }
+
     powershell.exe -ExecutionPolicy Bypass -File "$($drive):\install.ps1"
     Write-Host "Incus Agent installation complete"
 }

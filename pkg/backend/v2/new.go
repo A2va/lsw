@@ -450,7 +450,7 @@ func New(arch string, args NewV2Argument) error {
 	log.Info("finishing setup and scripts")
 	fmt.Print("\rStatus: [3/3] Finishing Setup & Scripts...          ")
 
-	ev = timeout(q, 4*time.Minute)
+	ev = timeout(q, 5*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-shutdown" {
 		log.Warn("VM did not shut down within expected time during Windows installation")
