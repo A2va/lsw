@@ -1,10 +1,16 @@
 function Get-DriveByFile {
     param([string]$FileName)
-    # Check PSDrives first, then Volumes
-    $drive = (Get-PSDrive | Where-Object { Test-Path "$($_.Name):\$FileName" }).Name
+
+    $drive = Get-PSDrive |
+        Where-Object { Test-Path "$($_.Name):\$FileName" } |
+        Select-Object -First 1 -ExpandProperty Name
+
     if (-not $drive) {
-        $drive = (Get-Volume | Where-Object { Test-Path "$($_.DriveLetter):\$FileName" }).DriveLetter
+        $drive = Get-Volume |
+            Where-Object { $_.DriveLetter -and (Test-Path "$($_.DriveLetter):\$FileName") } |
+            Select-Object -First 1 -ExpandProperty DriveLetter
     }
+
     return $drive
 }
 
@@ -80,12 +86,12 @@ function Install-WinFSP {
         Write-Warning "WinFSP installer not found."; return
     }
 
-    $msiPath = Get-ChildItem -Path "$($drive):\winfsp.msi" | Select-Object -First 1
-    Write-Host "Installing WinFSP from $($msiPath.FullName)..."
+    $msiPath = "$drive`:\winfsp.msi"
 
-    Copy-Item $msiPath "C:\winfsp.msi"
+    Write-Host "Installing WinFSP from $msiPath..."
+    Copy-Item $msiPath "C:\winfsp.msi" -Force
 
-    # INSTALLLEVEL=1000 ensures all features (including FUSE and Developer tools) are installed
+    # ADDLOCAL=ALL ensures all features (including FUSE and Developer tools) are installed
     $arguments = "/i `"C:\winfsp.msi`" ADDLOCAL=ALL /qn /norestart"
 
     Start-Process "msiexec.exe" -ArgumentList $arguments -Wait
