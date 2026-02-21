@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"maps"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/log"
 	incus "github.com/lxc/incus/client"
@@ -170,8 +172,121 @@ func addDevices(c incus.InstanceServer, vmName string, devicesToAdd map[string]m
 func removeDevices(c incus.InstanceServer, vmName string, devicesToRemove []string) error {
 	return updateInstance(c, vmName, func(inst *api.Instance) error {
 		for _, device := range devicesToRemove {
-			delete(inst.Devices, device)
+			_, exist := inst.Devices[device]
+			if exist {
+				delete(inst.Devices, device)
+			}
 		}
 		return nil
 	})
+}
+
+func runIncusCommand(c incus.InstanceServer, name string, cmd []string) error {
+	log.Debug("runnning incus command", "cmd", cmd)
+
+	req := api.InstanceExecPost{
+		Command:     cmd,
+		WaitForWS:   true,
+		Interactive: false,
+	}
+
+	op, err := c.ExecInstance(name, req, nil)
+	if err != nil {
+		return err
+	}
+	return op.Wait()
+}
+
+// Based on https://github.com/virtio-win/kvm-guest-drivers-windows/wiki/Virtiofs:-Shared-file-system
+
+// Name is optional
+// Return the path of the mounted folder if exists
+func mountFolder(c incus.InstanceServer, vmName string, path string, name string) (string, error) {
+	if name == "" {
+		h := sha256.New()
+		h.Write([]byte(path))
+		bs := h.Sum(nil)[:7]
+		name = string(bs)
+	}
+
+	log.Debug("mount folder", "name", name, "path", path)
+
+	inst, etag, err := c.GetInstance(vmName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get instance for adding shared device: %w", err)
+	}
+
+	d, exist := inst.Devices[name]
+	if exist {
+		return d["source"], nil
+	}
+
+	// Add the device to the instance
+	inst.Devices[name] = map[string]string{
+		"type":   "disk",
+		"source": path,
+		"path":   name,
+	}
+
+	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
+	if err != nil {
+		return "", fmt.Errorf("failed to update instance to add shared device: %w", err)
+	}
+	if err := op.Wait(); err != nil {
+		return "", fmt.Errorf("waiting for add shared device operation failed: %w", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	// FIXME the volume letter needs to be changed
+	cmd := []string{
+		`C:\Program Files (x86)\WinFsp\bin\launchctl-x64.exe`,
+		"start",
+		"virtiofs",
+		"viofsZ",
+		fmt.Sprintf("incus_%s", name),
+		"Z:",
+	}
+
+	err = runIncusCommand(c, vmName, cmd)
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func unmountFolder(c incus.InstanceServer, vmName string, path string, name string) error {
+	if name == "" {
+		h := sha256.New()
+		h.Write([]byte(path))
+		bs := h.Sum(nil)[:7]
+		name = string(bs)
+	}
+
+	log.Debug("unmount folder", "name", name, "path", path)
+	cmd := []string{
+		`C:\Program Files (x86)\WinFsp\bin\launchctl-x64.exe`,
+		"stop",
+		"virtiofs",
+		"viofsZ",
+	}
+
+	err := runIncusCommand(c, vmName, cmd)
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(200 * time.Millisecond)
+
+	inst, _, err := c.GetInstance(vmName)
+	if err != nil {
+		return fmt.Errorf("failed to get instance for adding shared device: %w", err)
+	}
+
+	_, exist := inst.Devices[name]
+	if exist {
+		return removeDevices(c, vmName, []string{name})
+	}
+
+	return nil
 }

@@ -7,36 +7,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
-	incus "github.com/lxc/incus/client"
 )
-
-func addSharedDevice(bottle config.Bottle, cwd string, c incus.InstanceServer) (string, error) {
-	inst, etag, err := c.GetInstance(bottle.Name)
-	if err != nil {
-		return "", fmt.Errorf("failed to get instance for adding shared device: %w", err)
-	}
-
-	d, exist := inst.Devices["shared"]
-	if exist {
-		return d["source"], nil
-	}
-
-	inst.Devices["shared"] = map[string]string{
-		"type":   "disk",
-		"source": cwd,
-		"path":   "shared",
-	}
-
-	op, err := c.UpdateInstance(bottle.Name, inst.Writable(), etag)
-	if err != nil {
-		return "", fmt.Errorf("failed to update instance to add shared device: %w", err)
-	}
-	if err := op.Wait(); err != nil {
-		return "", fmt.Errorf("waiting for add shared device operation failed: %w", err)
-	}
-
-	return "", nil
-}
 
 func Shell(bottle config.Bottle) error {
 	// TODO Maybe start if stopped
@@ -60,9 +31,15 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	source, err := addSharedDevice(bottle, cwd, c)
+	source, err := mountFolder(c, bottle.Name, cwd, "cwd")
 	if err != nil {
 		return fmt.Errorf("failed to add shared device: %w", err)
+	}
+
+	if source != "" && (source == cwd) {
+		defer func() {
+			unmountFolder(c, bottle.Name, cwd, "cwd")
+		}()
 	}
 
 	var idAddr string
@@ -80,10 +57,15 @@ func Shell(bottle config.Bottle) error {
 
 	username := os.Getenv("USER")
 
-	cmd := exec.Command("ssh", username+"@"+idAddr,
+	// ssh -t user@xxx.xxx.xxx.xxx "cd /d C:\directory_wanted & cmd /k"
+	// ssh -t user@xxx.xxx.xxx.xxx "cd C:\directory_wanted ; powershell -NoExit"
+
+	cmd := exec.Command("ssh", "-t", username+"@"+idAddr,
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "StrictHostKeyChecking=no",
+		"cd Z: ; powershell -NoExit",
 	)
+
 	cmd.Stdout = os.Stdout
 	// cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -103,15 +85,7 @@ func Shell(bottle config.Bottle) error {
 	)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to exex ssh: %w", err)
-	}
-
-	if source != "" && (source == cwd) {
-		err = removeDevices(c, bottle.Name, []string{"shared"})
-		if err != nil {
-			log.Error("failed to remove shared device", "err", err)
-			// Consider more robust error handling if this is critical.
-		}
+		return fmt.Errorf("failed to exec ssh: %w", err)
 	}
 
 	return nil

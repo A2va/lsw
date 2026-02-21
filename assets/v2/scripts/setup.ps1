@@ -132,8 +132,24 @@ Install-WinFSP
 Install-VirtioTools
 Install-OpenSSH
 
-Set-Service -Name "VirtioFsSvc" -StartupType Automatic
-Start-Service -Name "VirtioFsSvc"
+# Set-Service -Name "VirtioFsSvc" -StartupType Automatic
+# Start-Service -Name "VirtioFsSvc"
+
+Set-Service -Name "Incus-Agent" -StartupType Automatic
+Start-Service -Name "Incus-Agent"
+
+$virtiofsPath = "C:\Program Files\Virtio-Win\VioFS\virtiofs.exe"
+$fsregPath = "C:\Program Files (x86)\WinFsp\bin\fsreg.bat"
+
+if (Test-Path $virtiofsPath) {
+    $arguments = @(
+        "virtiofs"
+        "`"$virtiofsPath`""
+        "`"-t %1 -m %2`""
+    )
+
+    Start-Process -FilePath $fsregPath -ArgumentList $arguments
+}
 
 # Final Shutdown
 Write-Output "Setup complete. Shutting down..."
