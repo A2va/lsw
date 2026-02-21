@@ -1,6 +1,8 @@
 package v2
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"maps"
@@ -181,7 +183,7 @@ func removeDevices(c incus.InstanceServer, vmName string, devicesToRemove []stri
 	})
 }
 
-func runIncusCommand(c incus.InstanceServer, name string, cmd []string) error {
+func runIncusCommand(c incus.InstanceServer, name string, cmd []string) (*bytes.Buffer, error) {
 	log.Debug("runnning incus command", "cmd", cmd)
 
 	req := api.InstanceExecPost{
@@ -190,14 +192,29 @@ func runIncusCommand(c incus.InstanceServer, name string, cmd []string) error {
 		Interactive: false,
 	}
 
-	op, err := c.ExecInstance(name, req, nil)
-	if err != nil {
-		return err
+	buf := new(bytes.Buffer)
+
+	args := incus.InstanceExecArgs{
+		Stdin:  nil,
+		Stderr: nil,
+		Stdout: buf,
 	}
-	return op.Wait()
+
+	op, err := c.ExecInstance(name, req, &args)
+	if err != nil {
+		return nil, err
+	}
+
+	err = op.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
 }
 
 // Based on https://github.com/virtio-win/kvm-guest-drivers-windows/wiki/Virtiofs:-Shared-file-system
+const winfspLaunchctlPath = `C:\Program Files (x86)\WinFsp\bin\launchctl-x64.exe`
 
 // Name is optional
 // Return the path of the mounted folder if exists
@@ -240,7 +257,7 @@ func mountFolder(c incus.InstanceServer, vmName string, path string, name string
 
 	// FIXME the volume letter needs to be changed
 	cmd := []string{
-		`C:\Program Files (x86)\WinFsp\bin\launchctl-x64.exe`,
+		winfspLaunchctlPath,
 		"start",
 		"virtiofs",
 		"viofsZ",
@@ -248,7 +265,7 @@ func mountFolder(c incus.InstanceServer, vmName string, path string, name string
 		"Z:",
 	}
 
-	err = runIncusCommand(c, vmName, cmd)
+	_, err = runIncusCommand(c, vmName, cmd)
 	if err != nil {
 		return "", err
 	}
@@ -265,13 +282,13 @@ func unmountFolder(c incus.InstanceServer, vmName string, path string, name stri
 
 	log.Debug("unmount folder", "name", name, "path", path)
 	cmd := []string{
-		`C:\Program Files (x86)\WinFsp\bin\launchctl-x64.exe`,
+		winfspLaunchctlPath,
 		"stop",
 		"virtiofs",
 		"viofsZ",
 	}
 
-	err := runIncusCommand(c, vmName, cmd)
+	_, err := runIncusCommand(c, vmName, cmd)
 	if err != nil {
 		return err
 	}
@@ -289,4 +306,46 @@ func unmountFolder(c incus.InstanceServer, vmName string, path string, name stri
 	}
 
 	return nil
+}
+
+func listSharedVolumes(c incus.InstanceServer, vmName string) (map[string]string, error) {
+	cmd := []string{
+		winfspLaunchctlPath,
+		"list",
+	}
+
+	buffer, err := runIncusCommand(c, vmName, cmd)
+	if err != nil {
+		return map[string]string{}, err
+	}
+
+	if buffer.Len() <= 0 {
+		return map[string]string{}, nil
+	}
+
+	scanner := bufio.NewScanner(buffer)
+
+	sharedFolder := map[string]string{}
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		parts := strings.Fields(line)
+
+		// Skip line like OK
+		if len(parts) < 2 {
+			continue
+		}
+
+		if parts[0] == "virtiofs" {
+
+			sharedName := parts[1]
+
+			// Drive letter are placed at the end
+			volumeLetter := sharedName[len(sharedName)-1:]
+			nameWithoutLetter := sharedName[:len(sharedName)-1]
+
+			sharedFolder[nameWithoutLetter] = volumeLetter
+		}
+	}
+	return sharedFolder, nil
 }
