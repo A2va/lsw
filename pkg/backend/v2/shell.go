@@ -31,12 +31,12 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
-	source, err := mountFolder(c, bottle.Name, cwd, "cwd")
+	mountPoint, err := mountFolder(c, bottle.Name, cwd, "cwd")
 	if err != nil {
 		return fmt.Errorf("failed to add shared device: %w", err)
 	}
 
-	if source != "" && (source == cwd) {
+	if mountPoint.hostPath != "" && (mountPoint.hostPath == cwd) {
 		defer func() {
 			unmountFolder(c, bottle.Name, cwd, "cwd")
 		}()
@@ -63,7 +63,7 @@ func Shell(bottle *config.Bottle) error {
 	cmd := exec.Command("ssh", "-t", username+"@"+idAddr,
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "StrictHostKeyChecking=no",
-		"cd Z: ; powershell -NoExit",
+		fmt.Sprintf("cd %s: ; powershell -NoExit", mountPoint.volumeLetter),
 	)
 
 	cmd.Stdout = os.Stdout

@@ -13,6 +13,10 @@ func Stop(bottle *config.Bottle) error {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
 	}
 
+	for _, mount := range bottle.Mounts {
+		unmountFolder(c, bottle.Name, mount, "")
+	}
+
 	op, err := c.UpdateInstanceState(bottle.Name, api.InstanceStatePut{Action: "stop", Timeout: -1}, "")
 	if err != nil {
 		return fmt.Errorf("instance update failed: %w", err)

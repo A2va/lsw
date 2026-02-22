@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"os"
 	"os/exec"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -145,6 +147,7 @@ func incusClient() (incus.InstanceServer, error) {
 // The modifyFn function receives the current instance object and should apply
 // any desired changes to its Config and Devices fields.
 func updateInstance(c incus.InstanceServer, vmName string, modifyFn func(*api.Instance) error) error {
+	log.Debug("update vm instance", "name", vmName)
 	inst, etag, err := c.GetInstance(vmName)
 	if err != nil {
 		return fmt.Errorf("failed to fetch instance '%s': %w", vmName, err)
@@ -174,10 +177,7 @@ func addDevices(c incus.InstanceServer, vmName string, devicesToAdd map[string]m
 func removeDevices(c incus.InstanceServer, vmName string, devicesToRemove []string) error {
 	return updateInstance(c, vmName, func(inst *api.Instance) error {
 		for _, device := range devicesToRemove {
-			_, exist := inst.Devices[device]
-			if exist {
-				delete(inst.Devices, device)
-			}
+			delete(inst.Devices, device)
 		}
 		return nil
 	})
@@ -216,92 +216,158 @@ func runIncusCommand(c incus.InstanceServer, name string, cmd []string) (*bytes.
 // Based on https://github.com/virtio-win/kvm-guest-drivers-windows/wiki/Virtiofs:-Shared-file-system
 const winfspLaunchctlPath = `C:\Program Files (x86)\WinFsp\bin\launchctl-x64.exe`
 
+func getVolumeLetter(inst *api.Instance) (string, error) {
+	usedLetters := []string{}
+	for k, v := range inst.Config {
+		if strings.HasPrefix(k, "user.lsw.mount") {
+			usedLetters = append(usedLetters, v)
+		}
+	}
+
+	sort.Slice(usedLetters, func(i, j int) bool {
+		if usedLetters[i] < usedLetters[j] {
+			return true
+		}
+		return false
+	})
+
+	if len(usedLetters) == 0 {
+		return "Z", nil
+	}
+
+	if usedLetters[0] == "F" {
+		return "", fmt.Errorf("not free letter")
+	}
+
+	b := []byte(usedLetters[0])
+	b[0] = b[0] - 1
+
+	return string(b), nil
+}
+
+type mountPoint struct {
+	hostPath     string
+	volumeLetter string
+}
+
 // Name is optional
 // Return the path of the mounted folder if exists
-func mountFolder(c incus.InstanceServer, vmName string, path string, name string) (string, error) {
+func mountFolder(c incus.InstanceServer, vmName string, path string, name string) (mountPoint, error) {
 	if name == "" {
 		h := sha256.New()
 		h.Write([]byte(path))
-		bs := h.Sum(nil)[:7]
-		name = string(bs)
+		bs := h.Sum(nil)
+		name = hex.EncodeToString(bs)[:7]
 	}
 
 	log.Debug("mount folder", "name", name, "path", path)
 
-	inst, etag, err := c.GetInstance(vmName)
+	inst, _, err := c.GetInstance(vmName)
 	if err != nil {
-		return "", fmt.Errorf("failed to get instance for adding shared device: %w", err)
+		return mountPoint{}, fmt.Errorf("failed to get instance for adding shared device: %w", err)
 	}
 
-	d, exist := inst.Devices[name]
+	keyPath := fmt.Sprintf("user.lsw.mount.%s", name)
+	dev, exist := inst.Devices[name]
 	if exist {
-		return d["source"], nil
+
+		volumeLetter, _ := inst.Config[keyPath]
+
+		return mountPoint{
+			hostPath:     dev["source"],
+			volumeLetter: volumeLetter,
+		}, nil
 	}
 
-	// Add the device to the instance
-	inst.Devices[name] = map[string]string{
-		"type":   "disk",
-		"source": path,
-		"path":   name,
-	}
+	volumeLetter, err := getVolumeLetter(inst)
+	log.Debug("", "drive", volumeLetter, "key", keyPath)
 
-	op, err := c.UpdateInstance(vmName, inst.Writable(), etag)
 	if err != nil {
-		return "", fmt.Errorf("failed to update instance to add shared device: %w", err)
-	}
-	if err := op.Wait(); err != nil {
-		return "", fmt.Errorf("waiting for add shared device operation failed: %w", err)
+		log.Debug("cannot get drive letter")
+		return mountPoint{}, fmt.Errorf("error")
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	err = updateInstance(c, vmName, func(inst *api.Instance) error {
+		// Add the device to the instance
+		inst.Devices[name] = map[string]string{
+			"type":   "disk",
+			"source": path,
+			"path":   name,
+		}
+		inst.Config[keyPath] = volumeLetter
+		return nil
+	})
+
+	if err != nil {
+		return mountPoint{}, fmt.Errorf("failed to update instance to add shared device: %w", err)
+	}
+
+	time.Sleep(200 * time.Millisecond)
 
 	// FIXME the volume letter needs to be changed
 	cmd := []string{
 		winfspLaunchctlPath,
 		"start",
 		"virtiofs",
-		"viofsZ",
+		fmt.Sprintf("viofs%s", volumeLetter),
 		fmt.Sprintf("incus_%s", name),
-		"Z:",
+		fmt.Sprintf("%s:", volumeLetter),
 	}
 
 	_, err = runIncusCommand(c, vmName, cmd)
 	if err != nil {
-		return "", err
+		return mountPoint{}, err
 	}
-	return path, nil
+
+	return mountPoint{
+		hostPath:     path,
+		volumeLetter: volumeLetter,
+	}, nil
 }
 
 func unmountFolder(c incus.InstanceServer, vmName string, path string, name string) error {
 	if name == "" {
 		h := sha256.New()
 		h.Write([]byte(path))
-		bs := h.Sum(nil)[:7]
-		name = string(bs)
+		bs := h.Sum(nil)
+		name = hex.EncodeToString(bs)[:7]
 	}
-
-	log.Debug("unmount folder", "name", name, "path", path)
-	cmd := []string{
-		winfspLaunchctlPath,
-		"stop",
-		"virtiofs",
-		"viofsZ",
-	}
-
-	_, err := runIncusCommand(c, vmName, cmd)
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(200 * time.Millisecond)
 
 	inst, _, err := c.GetInstance(vmName)
 	if err != nil {
 		return fmt.Errorf("failed to get instance for adding shared device: %w", err)
 	}
 
-	_, exist := inst.Devices[name]
+	// Get the drive letter stored in incus config
+	keyPath := fmt.Sprintf("user.lsw.mount.%s", name)
+	driveLetter, exist := inst.Config[keyPath]
+	if !exist {
+		return fmt.Errorf("missing drive letter in incus config")
+	}
+	delete(inst.Config, keyPath)
+
+	log.Debug("unmount folder", "name", name, "path", path)
+	cmd := []string{
+		winfspLaunchctlPath,
+		"stop",
+		"virtiofs",
+		fmt.Sprintf("viofs%s", driveLetter),
+	}
+
+	_, err = runIncusCommand(c, vmName, cmd)
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(200 * time.Millisecond)
+
+	_, exist = inst.Devices[name]
 	if exist {
+		updateInstance(c, vmName, func(inst *api.Instance) error {
+			delete(inst.Devices, name)
+			delete(inst.Config, keyPath)
+			return nil
+		})
 		return removeDevices(c, vmName, []string{name})
 	}
 

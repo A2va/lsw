@@ -7,7 +7,7 @@ import (
 )
 
 func Mount(bottle *config.Bottle, folder string) error {
-	// TODO Mabye resolve symlink
+	// TODO Mabye resolve symlink or check if exists
 
 	absFolder, err := filepath.Abs(folder)
 	if err != nil {
