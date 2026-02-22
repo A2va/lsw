@@ -5,7 +5,7 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-func Remove(bottle config.Bottle) error {
+func Remove(bottle *config.Bottle) error {
 	c, err := incusClient()
 	if err != nil {
 		return err

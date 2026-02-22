@@ -50,7 +50,7 @@ func execMethod(c context.Context, nameOrID string) error {
 	return nil
 }
 
-func Shell(bottle config.Bottle) error {
+func Shell(bottle *config.Bottle) error {
 	// FIXME Cannot create two shell session of the same bottle
 	log.Info("shelling into container (podman)", "name", bottle.Name)
 
@@ -59,7 +59,7 @@ func Shell(bottle config.Bottle) error {
 		return err
 	}
 
-	spec, err := CreateSpec(bottle)
+	spec, err := CreateSpec(*bottle)
 	if err != nil {
 		return err
 	}

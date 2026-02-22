@@ -8,7 +8,7 @@ import (
 	"github.com/moby/moby/client"
 )
 
-func Remove(bottle config.Bottle) error {
+func Remove(bottle *config.Bottle) error {
 	c, err := client.New(client.FromEnv)
 	if err != nil {
 		return err

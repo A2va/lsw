@@ -6,7 +6,7 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 )
 
-func Start(bottle config.Bottle) error {
+func Start(bottle *config.Bottle) error {
 	if bottle.V1Provider == "docker" {
 		return docker.Start(bottle)
 	} else if bottle.V1Provider == "podman" {

@@ -6,7 +6,7 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 )
 
-func Mount(bottle config.Bottle, folder string) error {
+func Mount(bottle *config.Bottle, folder string) error {
 	// TODO Mabye resolve symlink
 
 	absFolder, err := filepath.Abs(folder)

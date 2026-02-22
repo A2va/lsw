@@ -201,7 +201,7 @@ func CreateAllCacheDirectories() (string, error) {
 	return dir, nil
 }
 
-func GetBottle(name string) (config.Bottle, bool) {
+func GetBottle(name string) (*config.Bottle, bool) {
 	cfg := config.Get()
 
 	var bottleName string
@@ -213,17 +213,13 @@ func GetBottle(name string) (config.Bottle, bool) {
 
 	log.Info("retrieving bottle", "name", bottleName)
 
-	var bottle config.Bottle
-	found := false
-
-	for _, b := range cfg.Bottles {
-		if b.Name == bottleName {
-			bottle = b
-			found = true
-			break
+	for i := range cfg.Bottles {
+		if cfg.Bottles[i].Name == bottleName {
+			log.Debug("bottle", "value", &cfg.Bottles[i], "found", true)
+			return &cfg.Bottles[i], true
 		}
 	}
 
-	log.Debug("bottle", "value", bottle, "found", found)
-	return bottle, found
+	log.Debug("bottle", "found", false)
+	return nil, false
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-func Shell(bottle config.Bottle) error {
+func Shell(bottle *config.Bottle) error {
 	// TODO Maybe start if stopped
 
 	c, err := incusClient()

@@ -7,7 +7,7 @@ import (
 	"github.com/lxc/incus/shared/api"
 )
 
-func Stop(bottle config.Bottle) error {
+func Stop(bottle *config.Bottle) error {
 	c, err := incusClient()
 	if err != nil {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)

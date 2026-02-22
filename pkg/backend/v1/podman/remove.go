@@ -9,7 +9,8 @@ import (
 	"github.com/containers/podman/v6/pkg/bindings/volumes"
 )
 
-func Remove(bottle config.Bottle) error {
+func Remove(bottle *config.Bottle) error {
+	// FIXME remove bottle
 	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
 	if err != nil {
 		return err

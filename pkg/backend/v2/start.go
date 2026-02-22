@@ -8,7 +8,7 @@ import (
 	"github.com/lxc/incus/shared/api"
 )
 
-func Start(bottle config.Bottle) error {
+func Start(bottle *config.Bottle) error {
 	log.Info("starting bottle (v2 backend)", "name", bottle.Name)
 	c, err := incusClient()
 	if err != nil {
