@@ -89,7 +89,6 @@ func New(name string) error {
 	createOpts.Config.User = "0" // Run as root
 
 	// Determine the host user's UID/GID to transfer ownership to.
-	// Note: os.Getuid() is not available on Windows.
 	uid := os.Getuid()
 	gid := os.Getgid()
 

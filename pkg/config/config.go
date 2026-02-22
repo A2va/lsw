@@ -118,6 +118,19 @@ func Get() *Config {
 	return &cfg
 }
 
+func (c *Config) RemoveBottle(name string) {
+	for i, b := range c.Bottles {
+		if b.Name == name {
+			c.Bottles = append(c.Bottles[:i], c.Bottles[i+1:]...)
+			break
+		}
+	}
+
+	if c.DefaultBottle == name {
+		c.DefaultBottle = ""
+	}
+}
+
 func SetVersion(versionCmd string, debugFlag bool) {
 	// Placeholder when the executable is not built by goreleaser
 	if versionCmd == "" {

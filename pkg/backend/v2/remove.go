@@ -22,5 +22,6 @@ func Remove(bottle *config.Bottle) error {
 	}
 	log.Debug("remove bottle", "bottle", bottle.Name)
 
+	config.Get().RemoveBottle(bottle.Name)
 	return nil
 }

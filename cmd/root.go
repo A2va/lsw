@@ -123,6 +123,7 @@ Features:
 	cmd.AddCommand(shellCmd())
 	cmd.AddCommand(startCmd())
 	cmd.AddCommand(stopCmd())
+	cmd.AddCommand(removeCmd())
 	cmd.AddCommand(mountCmd())
 
 	root.cmd = cmd

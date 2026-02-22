@@ -12,5 +12,7 @@ func Remove(bottle *config.Bottle) error {
 	} else if bottle.V1Provider == "podman" {
 		return podman.Remove(bottle)
 	}
+
+	config.Get().RemoveBottle(bottle.Name)
 	return nil
 }
