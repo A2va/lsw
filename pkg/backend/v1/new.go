@@ -27,18 +27,12 @@ func New(name string, provider string) error {
 	}
 
 	log.Info("updating config to add new bottle")
-	cfg := config.Get()
 
 	// Update the config
-	cfg.Bottles = append(cfg.Bottles, config.Bottle{
+	config.Get().AddBottle(config.Bottle{
 		Name:       name,
 		Version:    "v1",
 		V1Provider: provider,
 	})
-
-	// Set the default bottle if not already set
-	if cfg.DefaultBottle == "" {
-		cfg.DefaultBottle = name
-	}
 	return nil
 }

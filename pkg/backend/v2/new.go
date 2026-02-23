@@ -461,19 +461,13 @@ func New(arch string, args NewV2Argument) error {
 	listener.Disconnect()
 
 	log.Info("updating config to add new bottle")
-	cfg := config.Get()
 
 	// Update the config
-	cfg.Bottles = append(cfg.Bottles, config.Bottle{
+	config.Get().AddBottle(config.Bottle{
 		Name:     args.Name,
 		Version:  "v2",
 		Password: args.Password,
 	})
-
-	// Set the default bottle if not already set
-	if cfg.DefaultBottle == "" {
-		cfg.DefaultBottle = args.Name
-	}
 
 	err = removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
 	if err != nil {

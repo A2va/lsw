@@ -131,6 +131,14 @@ func (c *Config) RemoveBottle(name string) {
 	}
 }
 
+func (c *Config) AddBottle(bottle Bottle) {
+	c.Bottles = append(c.Bottles, bottle)
+	// Set the default bottle if not already set
+	if cfg.DefaultBottle == "" {
+		cfg.DefaultBottle = bottle.Name
+	}
+}
+
 func SetVersion(versionCmd string, debugFlag bool) {
 	// Placeholder when the executable is not built by goreleaser
 	if versionCmd == "" {
