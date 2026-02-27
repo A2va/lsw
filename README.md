@@ -12,6 +12,12 @@ LSW provides two backends:
 
 Install either [docker](https://docs.docker.com/engine/install/) or [podman](https://podman.io/docs/installation#linux-distributions).
 
+Make sure to enable the docker/podman socket:
+```
+systemctl --user enable --now podman.socket
+sudo systemctl enable --now docker
+```
+
 ### Install Dependencies for v2
 
 *Fedora:*
@@ -99,7 +105,7 @@ Generally speaking, v1 bottles are faster and use fewer resources, but installin
 
 Another limitation of the v2 backend is that you cannot mount multiple directories at the same time. Only the current working directory when executing 'lsw shell' will be mounted. There is also no support for global mounting (i.e. those in the config file).
 
-## How to resize a v1 bottle ?
+## How to resize a v2 bottle ?
 
 This is not possible to do it with lsw directly but you can use incus. First stop the bottle and execute:
 ```bash
