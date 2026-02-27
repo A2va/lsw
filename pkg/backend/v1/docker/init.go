@@ -212,9 +212,11 @@ func Init() {
 	}
 	defer c.Close()
 
-	err = pruneOldImages(c)
-	if err != nil {
-		log.Fatal(err)
+	if config.GetVersion().Version != "dev" {
+		err = pruneOldImages(c)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	err = buildImage(c)

@@ -144,6 +144,8 @@ func buildImage(c context.Context) error {
 		remove = false
 	}
 
+	// FIXME find a way to not log to stdout when podman is building the image
+
 	buildOptions := types.BuildOptions{
 		BuildOptions: buildahDefine.BuildOptions{
 			NoCache:                noCache,
@@ -173,10 +175,15 @@ func Init() {
 		log.Fatal(err)
 	}
 
-	err = pruneOldImages(c)
-	if err != nil {
-		log.Fatal(err)
+
+	// Prune old image only in dev version, to rely on the podman cache
+	if config.GetVersion().Version != "dev" {
+		err = pruneOldImages(c)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
+
 
 	buildImage(c)
 }
