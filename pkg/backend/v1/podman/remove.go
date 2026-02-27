@@ -1,17 +1,15 @@
 package podman
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/containers/podman/v6/pkg/bindings"
 	"github.com/containers/podman/v6/pkg/bindings/volumes"
 )
 
 func Remove(bottle *config.Bottle) error {
 	// FIXME remove bottle
-	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
+	c, err := podmanClient()
 	if err != nil {
 		return err
 	}

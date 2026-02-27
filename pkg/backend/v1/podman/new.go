@@ -1,14 +1,12 @@
 package podman
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/bindings"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -69,7 +67,7 @@ func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 }
 
 func New(name string) error {
-	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
+	c, err := podmanClient()
 	if err != nil {
 		return err
 	}

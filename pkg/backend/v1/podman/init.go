@@ -13,7 +13,6 @@ import (
 	"github.com/charmbracelet/log"
 	buildahDefine "github.com/containers/buildah/define"
 
-	"github.com/containers/podman/v6/pkg/bindings"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/containers/podman/v6/pkg/bindings/images"
 	"github.com/containers/podman/v6/pkg/domain/entities/types"
@@ -169,7 +168,7 @@ func buildImage(c context.Context) error {
 func Init() {
 	log.Info("initializing Podman provider")
 
-	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
+	c, err := podmanClient()
 	if err != nil {
 		log.Fatal(err)
 	}
