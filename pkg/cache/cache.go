@@ -12,7 +12,8 @@ import (
 	"github.com/hashicorp/go-getter"
 )
 
-var filesInCache []string
+var fileListCache []string
+var resolvedPathCache map[string]string
 
 func hash(s string) []byte {
 	h := sha256.Sum256([]byte(s))
@@ -65,19 +66,26 @@ func AddFile(name string, url string) error {
 		}
 	}
 
-	// Invalidate the cache if a new file was added
-	if len(filesInCache) > 0 {
-		getFiles()
-	}
-
 	// This ensures that even if we just downloaded an "old" file (via preservation)
 	// or switched back to an existing cached file, it becomes the "active" one.
 	now := time.Now()
-	return os.Chtimes(dst, now, now)
+	if err := os.Chtimes(dst, now, now); err != nil {
+		return err
+	}
+
+	// Invalidate the cache if a new file was added
+	fileListCache = nil
+	delete(resolvedPathCache, name)
+
+	return nil
 }
 
 // Retrieve a file from the cache
 func GetFile(requestedPath string) (string, error) {
+	if path, ok := resolvedPathCache[requestedPath]; ok {
+		return path, nil
+	}
+
 	// Get list of all files in cache
 	files, err := getFiles()
 	if err != nil {
@@ -143,13 +151,15 @@ func GetFile(requestedPath string) (string, error) {
 		// Even if we fail to touch it (permissions?), we should still return the file
 		// Log error if you have a logger
 	}
+
+	resolvedPathCache[requestedPath] = newestPath
 	return newestPath, nil
 }
 
 func getFiles() ([]string, error) {
-	// Take from cache if available
-	if len(filesInCache) > 0 {
-		return filesInCache, nil
+	// If cache is populated, return it immediately
+	if len(fileListCache) > 0 {
+		return fileListCache, nil
 	}
 
 	cacheDir, err := GetCacheDir()

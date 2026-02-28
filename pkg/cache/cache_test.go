@@ -8,6 +8,10 @@ import (
 )
 
 func TestBasic(t *testing.T) {
+	// Reset the internal cache
+	fileListCache = nil
+	resolvedPathCache = make(map[string]string)
+
 	tmpCache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", tmpCache)
 
@@ -34,6 +38,10 @@ func TestBasic(t *testing.T) {
 }
 
 func TestCacheWorkflow(t *testing.T) {
+	// Reset the internal cache
+	fileListCache = nil
+	resolvedPathCache = make(map[string]string)
+
 	tmpCache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", tmpCache)
 
