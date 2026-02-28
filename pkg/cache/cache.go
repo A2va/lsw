@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/go-getter"
 )
 
+var filesInCache []string
+
 func hash(s string) []byte {
 	h := sha256.Sum256([]byte(s))
 	return h[:5]
@@ -63,6 +65,11 @@ func AddFile(name string, url string) error {
 		}
 	}
 
+	// Invalidate the cache if a new file was added
+	if len(filesInCache) > 0 {
+		getFiles()
+	}
+
 	// This ensures that even if we just downloaded an "old" file (via preservation)
 	// or switched back to an existing cached file, it becomes the "active" one.
 	now := time.Now()
@@ -71,7 +78,6 @@ func AddFile(name string, url string) error {
 
 // Retrieve a file from the cache
 func GetFile(requestedPath string) (string, error) {
-	// FIXME cache the list of files, invalidate when calling AddFile
 	// Get list of all files in cache
 	files, err := getFiles()
 	if err != nil {
@@ -141,6 +147,11 @@ func GetFile(requestedPath string) (string, error) {
 }
 
 func getFiles() ([]string, error) {
+	// Take from cache if available
+	if len(filesInCache) > 0 {
+		return filesInCache, nil
+	}
+
 	cacheDir, err := GetCacheDir()
 	if err != nil {
 		return []string{}, err
