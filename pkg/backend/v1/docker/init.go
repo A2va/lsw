@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/A2va/lsw/pkg/backend"
+	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	"github.com/containerd/errdefs"
@@ -34,7 +35,7 @@ func getDockerfile() (string, error) {
 			return "", err
 		}
 
-		cache, err := backend.GetCacheDir()
+		cache, err := cache.GetCacheDir()
 		if err != nil {
 			return "", err
 		}

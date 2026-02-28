@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/A2va/lsw/pkg/backend"
+	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	log "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -15,7 +16,7 @@ import (
 )
 
 func initLog(debug bool) {
-	logdir, err := backend.GetCacheDir()
+	logdir, err := cache.GetCacheDir()
 	if err != nil {
 		log.Fatalf("cannot get cache directory: %v", err)
 	}

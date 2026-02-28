@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/A2va/lsw/pkg/backend"
+	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	"github.com/lxc/incus/shared/util"
@@ -81,7 +82,7 @@ func downloadWindowsIso() (string, error) {
 
 // Create a iso to install some software without internet connection
 func createSoftwareISO(winfspPath string, openSSHPath string, redisPath string, incusAgentPath string) error {
-	cachedir, err := backend.GetCacheDir()
+	cachedir, err := cache.GetCacheDir()
 	if err != nil {
 		log.Fatal("cannot get cache directory")
 	}

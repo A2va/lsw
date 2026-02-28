@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/A2va/lsw/pkg/backend"
+	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	incus "github.com/lxc/incus/client"
@@ -158,7 +159,7 @@ func getUnattendXmlFile() (string, error) {
 		wd, _ := os.Getwd()
 		return path.Join(wd, "assets", "v2", "autounattend.xml"), nil
 	}
-	cache, err := backend.GetCacheDir()
+	cache, err := cache.GetCacheDir()
 	if err != nil {
 		return "", err
 	}
@@ -183,7 +184,7 @@ func copyUnattendAssetsToDir(d string) error {
 
 	log.Debug("temp directory", "dir", d)
 
-	cache, err := backend.GetCacheDir()
+	cache, err := cache.GetCacheDir()
 	if err != nil {
 		return err
 	}
@@ -308,7 +309,7 @@ func New(arch string, args NewV2Argument) error {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
 	}
 
-	cache, err := backend.GetCacheDir()
+	cache, err := cache.GetCacheDir()
 	if err != nil {
 		log.Fatal("cannot get cache dir")
 	}

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 )
@@ -79,21 +80,6 @@ func unzipFile(f *zip.File, destination string) error {
 	return nil
 }
 
-func GetCacheDir() (string, error) {
-	c, exist := os.LookupEnv("XDG_CACHE_HOME")
-
-	if exist {
-		return filepath.Join(c, "lsw"), nil
-	}
-
-	home, homeErr := os.UserHomeDir()
-	if homeErr != nil {
-		return "", homeErr
-	}
-
-	return filepath.Join(home, ".cache", "lsw"), nil
-}
-
 func downloadFile(url string, filepath string) error {
 	// Create directory if it doesn't exists
 	err := CreateDir(path.Dir(filepath), 0755)
@@ -130,7 +116,7 @@ func downloadFile(url string, filepath string) error {
 }
 
 func DownloadFileIfNeeded(url string, file string) (string, error) {
-	cachedir, err := GetCacheDir()
+	cachedir, err := cache.GetCacheDir()
 	if err != nil {
 		return "", err
 	}
@@ -176,7 +162,7 @@ func CreateDir(dir string, perm os.FileMode) error {
 }
 
 func CreateAllCacheDirectories() (string, error) {
-	dir, err := GetCacheDir()
+	dir, err := cache.GetCacheDir()
 	if err != nil {
 		return "", err
 	}
