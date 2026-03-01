@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -149,6 +150,94 @@ func GetFile(requestedPath string) (string, error) {
 
 	resolvedPathCache[requestedPath] = newestPath
 	return newestPath, nil
+}
+
+// helper struct to keep path and time together
+type cachedFile struct {
+	path    string
+	modTime time.Time
+}
+
+// Prune removes old versions of files, keeping only the 'keep' most recent versions.
+// accurate grouping depends on the naming convention: name-hash.ext
+func Prune(keep int) error {
+	if keep < 1 {
+		return fmt.Errorf("keep must be at least 1")
+	}
+
+	files, err := getFiles()
+	if err != nil {
+		return err
+	}
+
+	dlDir, err := getDownloadDir()
+	if err != nil {
+		return err
+	}
+
+	groups := make(map[string][]cachedFile)
+
+	for _, relPath := range files {
+		absPath := filepath.Join(dlDir, relPath)
+		info, err := os.Stat(absPath)
+		if err != nil {
+			// If file was deleted concurrently, just skip
+			continue
+		}
+
+		// Logic to reconstruct the "original" name from "name-hash.ext"
+		// "subdir/image-a1b2c.iso" -> dir: "subdir", file: "image-a1b2c.iso"
+		dir := filepath.Dir(relPath)
+		base := filepath.Base(relPath)
+		ext := filepath.Ext(base) // ".iso"
+
+		// Remove extension: "image-a1b2c"
+		nameNoExt := strings.TrimSuffix(base, ext)
+
+		// Find last hyphen to identify where name ends and hash starts
+		lastHyphen := strings.LastIndex(nameNoExt, "-")
+		if lastHyphen == -1 {
+			// File doesn't match our format? Skip it to be safe.
+			continue
+		}
+
+		originalName := nameNoExt[:lastHyphen]
+
+		// Group Key: "subdir/image.iso"
+		key := filepath.Join(dir, originalName+ext)
+
+		groups[key] = append(groups[key], cachedFile{
+			path:    absPath,
+			modTime: info.ModTime(),
+		})
+	}
+
+	for _, versions := range groups {
+		// If we don't have enough versions to prune, skip
+		if len(versions) <= keep {
+			continue
+		}
+
+		// Newest First
+		sort.Slice(versions, func(i, j int) bool {
+			return versions[i].modTime.After(versions[j].modTime)
+		})
+
+		// Delete everything after the 'keep' index
+		// e.g. if keep=1, delete from index 1 to end
+		for _, fileToDelete := range versions[keep:] {
+			if err := os.Remove(fileToDelete.path); err != nil {
+				// Optional: log error, but don't stop the whole process
+				// return err
+			}
+		}
+	}
+
+	// Invalidate cache
+	fileListCache = nil
+	resolvedPathCache = make(map[string]string)
+
+	return nil
 }
 
 func getDownloadDir() (string, error) {

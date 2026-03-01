@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,6 +35,58 @@ func TestBasic(t *testing.T) {
 	}
 
 	checkContent(t, path, "CONTENT")
+}
+
+func TestPrune(t *testing.T) {
+	// Reset globals
+	fileListCache = nil
+	resolvedPathCache = make(map[string]string)
+
+	tmpCache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", tmpCache)
+
+	tmpSource := t.TempDir()
+	targetName := "images/ubuntu.iso"
+
+	// Create 3 dummy files with distinct content
+	// We sleep to ensure timestamps differ
+	for i := 0; i < 3; i++ {
+		content := fmt.Sprintf("CONTENT v%d", i)
+		src := filepath.Join(tmpSource, fmt.Sprintf("v%d.iso", i))
+		os.WriteFile(src, []byte(content), 0644)
+
+		if err := AddFile(targetName, "file://"+src); err != nil {
+			t.Fatalf("Failed to add v%d: %v", i, err)
+		}
+		time.Sleep(50 * time.Millisecond) // Ensure ModTime differs
+	}
+
+	// Verify we have 3 files in the specific directory
+	files, _ := getFiles()
+	if len(files) != 3 {
+		t.Fatalf("Expected 3 files before prune, got %d", len(files))
+	}
+
+	// Keep only the 1 newest file
+	if err := Prune(1); err != nil {
+		t.Fatalf("Prune failed: %v", err)
+	}
+
+	files, _ = getFiles()
+	if len(files) != 1 {
+		t.Errorf("Expected 1 file after prune, got %d", len(files))
+	}
+
+	// Verify the remaining file is actually the newest (V2)
+	path, err := GetFile(targetName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content, _ := os.ReadFile(path)
+	if string(content) != "CONTENT v2" {
+		t.Errorf("Prune deleted the wrong file! Remaining content: %s", string(content))
+	}
 }
 
 func TestCacheWorkflow(t *testing.T) {

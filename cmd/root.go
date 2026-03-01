@@ -109,6 +109,11 @@ Features:
 			if err != nil {
 				log.Error("error loading config file", "err", err)
 			}
+
+			err = cache.Prune(1)
+			if err != nil {
+				log.Warnf("error to prune the cache: %w", err)
+			}
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
