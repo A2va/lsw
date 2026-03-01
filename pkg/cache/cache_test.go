@@ -34,7 +34,6 @@ func TestBasic(t *testing.T) {
 	}
 
 	checkContent(t, path, "CONTENT")
-
 }
 
 func TestCacheWorkflow(t *testing.T) {

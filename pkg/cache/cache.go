@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ func GetCacheDir() (string, error) {
 }
 
 func AddFile(name string, url string) error {
-	cacheDir, err := GetCacheDir()
+	cacheDir, err := getDownloadDir()
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,7 @@ func GetFile(requestedPath string) (string, error) {
 		return "", err
 	}
 
-	cacheDir, err := GetCacheDir()
+	cacheDir, err := getDownloadDir()
 	if err != nil {
 		return "", err
 	}
@@ -156,13 +157,21 @@ func GetFile(requestedPath string) (string, error) {
 	return newestPath, nil
 }
 
+func getDownloadDir() (string, error) {
+	root, err := GetCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(root, "download"), nil
+}
+
 func getFiles() ([]string, error) {
 	// If cache is populated, return it immediately
 	if len(fileListCache) > 0 {
 		return fileListCache, nil
 	}
 
-	cacheDir, err := GetCacheDir()
+	cacheDir, err := getDownloadDir()
 	if err != nil {
 		return []string{}, err
 	}
