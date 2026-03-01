@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/hashicorp/go-getter"
 )
 
@@ -19,13 +20,6 @@ var resolvedPathCache map[string]string
 func hash(s string) []byte {
 	h := sha256.Sum256([]byte(s))
 	return h[:5]
-}
-
-func Exists(path string) bool {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false
-	}
-	return true
 }
 
 func GetCacheDir() (string, error) {
@@ -61,7 +55,7 @@ func AddFile(name string, url string) error {
 	}
 
 	// Download if missing
-	if _, err := os.Stat(dst); os.IsNotExist(err) {
+	if !utils.Exists(dst) {
 		if err := getter.GetFile(dst, url); err != nil {
 			return err
 		}

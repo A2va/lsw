@@ -8,6 +8,7 @@ import (
 	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 	"github.com/lxc/incus/shared/util"
 	"github.com/plus3it/gorecurcopy"
@@ -93,8 +94,8 @@ func createSoftwareISO(winfspPath string, openSSHPath string, redisPath string, 
 	openSSHtmpDir := path.Join(tmpDir, "OpenSSH")
 
 	if !util.PathExists(isoPath) {
-		backend.CreateDir(tmpDir, 0755)
-		backend.CreateDir(openSSHtmpDir, 0755)
+		utils.CreateDir(tmpDir, 0755)
+		utils.CreateDir(openSSHtmpDir, 0755)
 
 		gorecurcopy.Copy(incusAgentPath, path.Join(tmpDir, "incus-agent.exe"))
 		gorecurcopy.Copy(winfspPath, path.Join(tmpDir, "winfsp.msi"))

@@ -12,9 +12,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
@@ -169,7 +169,7 @@ func getUnattendXmlFile() (string, error) {
 // Copy the assets for creating a autounattend iso file to a temp dir
 func copyUnattendAssetsToDir(d string) error {
 	copyToDirFromCache := func(cachedir string, dir string, file string) {
-		err := backend.CreateDir(path.Join(dir, path.Dir(file)), 0755)
+		err := utils.CreateDir(path.Join(dir, path.Dir(file)), 0755)
 		if err != nil {
 			log.Fatal("error creating directory", "err", err)
 		}

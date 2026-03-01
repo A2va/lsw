@@ -12,6 +12,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 )
 
@@ -82,7 +83,7 @@ func unzipFile(f *zip.File, destination string) error {
 
 func downloadFile(url string, filepath string) error {
 	// Create directory if it doesn't exists
-	err := CreateDir(path.Dir(filepath), 0755)
+	err := utils.CreateDir(path.Dir(filepath), 0755)
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func DownloadFileIfNeeded(url string, file string) (string, error) {
 		finalFilepath = strings.Replace(filepath, ".zip", "", 1)
 	}
 
-	if !Exists(finalFilepath) {
+	if !utils.Exists(finalFilepath) {
 		if isZip {
 			filepath = finalFilepath + ".zip"
 		}
@@ -142,44 +143,25 @@ func DownloadFileIfNeeded(url string, file string) (string, error) {
 	return finalFilepath, nil
 }
 
-func Exists(path string) bool {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-func CreateDir(dir string, perm os.FileMode) error {
-	if Exists(dir) {
-		return nil
-	}
-
-	if err := os.MkdirAll(dir, perm); err != nil {
-		return fmt.Errorf("failed to create directory: '%s', error: '%s'", dir, err.Error())
-	}
-
-	return nil
-}
-
 func CreateAllCacheDirectories() (string, error) {
 	dir, err := cache.GetCacheDir()
 	if err != nil {
 		return "", err
 	}
 
-	err = CreateDir(path.Join(dir, "downloads"), 0755)
+	err = utils.CreateDir(path.Join(dir, "downloads"), 0755)
 	if err != nil {
 		return "", err
 	}
-	err = CreateDir(path.Join(dir, "iso"), 0755)
+	err = utils.CreateDir(path.Join(dir, "iso"), 0755)
 	if err != nil {
 		return "", err
 	}
-	err = CreateDir(path.Join(dir, "logs"), 0755)
+	err = utils.CreateDir(path.Join(dir, "logs"), 0755)
 	if err != nil {
 		return "", err
 	}
-	err = CreateDir(path.Join(dir, "tmp"), 0755)
+	err = utils.CreateDir(path.Join(dir, "tmp"), 0755)
 	if err != nil {
 		return "", err
 	}
