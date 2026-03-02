@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	log "github.com/charmbracelet/log"
@@ -90,7 +89,7 @@ Features:
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			_, err := backend.CreateAllCacheDirectories()
+			err := cache.Init()
 			if err != nil {
 				log.Fatal("error creating cache directories", "err", err)
 			}

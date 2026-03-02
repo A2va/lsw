@@ -143,32 +143,6 @@ func DownloadFileIfNeeded(url string, file string) (string, error) {
 	return finalFilepath, nil
 }
 
-func CreateAllCacheDirectories() (string, error) {
-	dir, err := cache.GetCacheDir()
-	if err != nil {
-		return "", err
-	}
-
-	err = utils.CreateDir(path.Join(dir, "downloads"), 0755)
-	if err != nil {
-		return "", err
-	}
-	err = utils.CreateDir(path.Join(dir, "iso"), 0755)
-	if err != nil {
-		return "", err
-	}
-	err = utils.CreateDir(path.Join(dir, "logs"), 0755)
-	if err != nil {
-		return "", err
-	}
-	err = utils.CreateDir(path.Join(dir, "tmp"), 0755)
-	if err != nil {
-		return "", err
-	}
-
-	return dir, nil
-}
-
 func GetBottle(name string) (*config.Bottle, bool) {
 	if name == "" {
 		return nil, false

@@ -152,6 +152,21 @@ func GetFile(requestedPath string) (string, error) {
 	return newestPath, nil
 }
 
+func Init() error {
+	dir, err := GetCacheDir()
+	if err != nil {
+		return err
+	}
+
+	dirs := []string{"downloads", "iso", "logs", "tmp"}
+	for _, d := range dirs {
+		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // helper struct to keep path and time together
 type cachedFile struct {
 	path    string
