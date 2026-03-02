@@ -16,6 +16,8 @@ func TestBasic(t *testing.T) {
 	tmpCache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", tmpCache)
 
+	fmt.Println(tmpCache)
+
 	tmpSource := t.TempDir()
 
 	targetName := "hello.txt"
@@ -50,7 +52,7 @@ func TestPrune(t *testing.T) {
 
 	// Create 3 dummy files with distinct content
 	// We sleep to ensure timestamps differ
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		content := fmt.Sprintf("CONTENT v%d", i)
 		src := filepath.Join(tmpSource, fmt.Sprintf("v%d.iso", i))
 		os.WriteFile(src, []byte(content), 0644)
@@ -159,6 +161,55 @@ func TestCacheWorkflow(t *testing.T) {
 
 		checkContent(t, path, v1Content)
 	})
+}
+
+func TestAddFile_Archive(t *testing.T) {
+	// Reset Cache
+	fileListCache = nil
+	resolvedPathCache = make(map[string]string)
+
+	tmpCache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", tmpCache)
+
+	const version = "v8.1.0.0p1-Beta"
+	url := "https://github.com/PowerShell/Win32-OpenSSH/releases/download/" + version + "/OpenSSH-Win64.zip"
+
+	// Request: Store in "OpenSSH" (implied directory, no extension)
+	targetName := "OpenSSH"
+
+	if err := AddFile(targetName, url); err != nil {
+		t.Fatalf("AddFile failed: %v", err)
+	}
+
+	// Retrieve
+	path, err := GetFile(targetName)
+	if err != nil {
+		t.Fatalf("GetFile failed: %v", err)
+	}
+
+	// Verification
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
+
+	// Should be a directory (because it was a zip)
+	if !info.IsDir() {
+		t.Errorf("Expected path to be a directory (extracted zip), got file: %s", path)
+	}
+
+	// Should contain specific files from that zip
+	expectedFile := filepath.Join(path, "OpenSSH-Win64", "ssh.exe") // The zip contains a root folder OpenSSH-Win64
+	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
+		t.Errorf("Did not find expected content inside zip: %s", expectedFile)
+	}
+
+	// Check Directory Name Format
+	// Expected: OpenSSH-<hash>
+	base := filepath.Base(path)
+	if len(base) < 12 || base[:8] != "OpenSSH-" { // OpenSSH- + 10 chars hash
+		t.Errorf("Directory name format wrong. Expected OpenSSH-HASH..., got: %s", base)
+	}
 }
 
 // Helper function to keep the main test clean

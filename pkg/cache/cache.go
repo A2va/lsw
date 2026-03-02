@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -18,9 +19,15 @@ import (
 var fileListCache []string
 var resolvedPathCache map[string]string
 
-func hash(s string) []byte {
+// regex to identify artifacts: ends with hyphen + 10 hex chars + optional extension
+// e.g. "image-a1b2c3d4e5.iso" or "OpenSSH-a1b2c3d4e5"
+var artifactReg = regexp.MustCompile(`-[0-9a-f]{10}(\.[a-zA-Z0-9]+)?$`)
+
+func hash(s string) string {
 	h := sha256.Sum256([]byte(s))
-	return h[:5]
+	// %x converts bytes to hex string automatically
+	// 5 bytes -> 10 hex chars
+	return fmt.Sprintf("%x", h[:5])
 }
 
 func GetCacheDir() (string, error) {
@@ -51,14 +58,26 @@ func AddFile(name string, url string) error {
 	// Maintain subdirectory structure
 	dst := filepath.Join(cacheDir, filepath.Dir(name), filename)
 
+	// TODO Investigate possible needed for case when switching a file to an url
+	// But realistically the url will change as well
+	// os.RemoveAll(dst)
+
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		return err
 	}
 
 	// Download if missing
 	if !utils.Exists(dst) {
-		if err := getter.GetFile(dst, url); err != nil {
-			return err
+		if ext != "" {
+			// Single File Mode
+			if err := getter.GetFile(dst, url); err != nil {
+				return err
+			}
+		} else {
+			// Directory/Archive Mode
+			if err := getter.Get(dst, url); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -111,8 +130,9 @@ func GetFile(requestedPath string) (string, error) {
 			continue
 		}
 
-		// Filter by Extension
-		if filepath.Ext(relPath) != reqExt {
+		// Filter by extension (only if requested path HAD an extension)
+		// This allows GetFile("OpenSSH") to match "OpenSSH-hash" (dir)
+		if reqExt != "" && filepath.Ext(relPath) != reqExt {
 			continue
 		}
 
@@ -241,11 +261,9 @@ func Prune(keep int) error {
 		// Delete everything after the 'keep' index
 		// e.g. if keep=1, delete from index 1 to end
 		for _, fileToDelete := range versions[keep:] {
-			if err := os.Remove(fileToDelete.path); err != nil {
-				// Optional: log error, but don't stop the whole process
-				// return err
-			}
+			os.RemoveAll(fileToDelete.path)
 		}
+
 	}
 
 	// Invalidate cache
@@ -269,24 +287,39 @@ func getFiles() ([]string, error) {
 		return fileListCache, nil
 	}
 
-	cacheDir, err := getDownloadDir()
+	dlDir, err := getDownloadDir()
 	if err != nil {
 		return []string{}, err
 	}
 
 	// Walk into the cache directory
 	var entries []string
-	err = filepath.WalkDir(cacheDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(cacheDir, path)
+	err = filepath.WalkDir(dlDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !d.IsDir() {
+		// Don't include the root folder itself
+		if path == dlDir {
+			return nil
+		}
+
+		// If it matches our artifact pattern (name-hash), we treat it as an atomic item.
+		// If it's a directory, we add it, but we SKIP walking inside it.
+		// Detect Artifacts (Files OR Directories)
+		if artifactReg.MatchString(d.Name()) {
+			rel, err := filepath.Rel(dlDir, path)
+			if err != nil {
+				return err
+			}
 			entries = append(entries, rel)
+
+			// If it's a directory (extracted zip), treat it as a single unit.
+			// Do NOT walk inside it.
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 
 		return nil
