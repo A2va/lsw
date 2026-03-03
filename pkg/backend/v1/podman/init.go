@@ -8,7 +8,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
@@ -30,16 +29,16 @@ func getDockerfile() (string, error) {
 		wd, _ := os.Getwd()
 		dockerfilePath = path.Join(wd, "assets", "v1", "Dockerfile")
 	} else {
-		_, err := backend.DownloadFileIfNeeded(url, "Dockerfile.v1")
+		err := cache.Add("Dockerfile.v1", url)
 		if err != nil {
 			return "", err
 		}
 
-		cache, err := cache.GetCacheDir()
+		item, err := cache.Get("Dockerfile.v1")
 		if err != nil {
 			return "", err
 		}
-		dockerfilePath = path.Join(cache, "downloads", "Dockerfile.v1")
+		dockerfilePath = item.Path
 	}
 
 	log.Debug("file path", "dockerfile", dockerfilePath)
