@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/A2va/lsw/pkg/utils"
+	"github.com/charmbracelet/log"
 	"github.com/hashicorp/go-getter"
 )
 
@@ -51,12 +52,15 @@ func AddFile(name string, url string) error {
 		return err
 	}
 
+	log.Info("add file to cache", "name", name, "url", url)
+
 	ext := filepath.Ext(name)
 	base := strings.TrimSuffix(filepath.Base(name), ext)
 	filename := fmt.Sprintf("%s-%s%s", base, hash(url), ext)
 
 	// Maintain subdirectory structure
 	dst := filepath.Join(cacheDir, filepath.Dir(name), filename)
+	log.Debug("", "filename", filename, "base", base, "ext", ext, "dst", dst)
 
 	// TODO Investigate possible needed for case when switching a file to an url
 	// But realistically the url will change as well
@@ -70,20 +74,20 @@ func AddFile(name string, url string) error {
 	if !utils.Exists(dst) {
 		if ext != "" {
 			// Single File Mode
+			log.Debug("download regular file")
 			if err := getter.GetFile(dst, url); err != nil {
 				return err
 			}
 		} else {
 			// Directory/Archive Mode
+			log.Debug("download archive file")
 			if err := getter.Get(dst, url); err != nil {
 				return err
 			}
 
 			// If we extracted a folder, check if it needs flattening
 			if err := flattenSingleDirectory(dst); err != nil {
-				// Don't fail hard, just log or ignore?
-				// Better to return error because the structure isn't what we expect.
-				return err
+				log.Warn("error when flattening: %w", err)
 			}
 		}
 	}
@@ -91,6 +95,7 @@ func AddFile(name string, url string) error {
 	// This ensures that even if we just downloaded an "old" file (via preservation)
 	// or switched back to an existing cached file, it becomes the "active" one.
 	now := time.Now()
+	log.Debug("touch file to", "now", now, "file", dst)
 	if err := os.Chtimes(dst, now, now); err != nil {
 		return err
 	}
@@ -104,6 +109,8 @@ func AddFile(name string, url string) error {
 
 // Retrieve a file from the cache
 func GetFile(requestedPath string) (string, error) {
+	log.Info("get file in cache", "path", requestedPath)
+
 	if path, ok := resolvedPathCache[requestedPath]; ok {
 		return path, nil
 	}
@@ -126,6 +133,8 @@ func GetFile(requestedPath string) (string, error) {
 
 	// We look for files starting with "file-" to account for the hash suffix
 	reqPrefix := reqBase + "-"
+
+	log.Debug("", "reqDir", reqDir, "reqExt", reqExt, "reqBase", reqBase, "reqPrefix", reqPrefix)
 
 	var newestPath string
 	var newestTime time.Time
@@ -168,6 +177,8 @@ func GetFile(requestedPath string) (string, error) {
 		return "", fmt.Errorf("file not found in cache: %s", requestedPath)
 	}
 
+	log.Info("found file", "path", newestPath, "time", newestTime)
+
 	// "Touch" the winner so it isn't cleaned up by garbage collection
 	now := time.Now()
 	if err := os.Chtimes(newestPath, now, now); err != nil {
@@ -206,6 +217,8 @@ func Prune(keep int) error {
 	if keep < 1 {
 		return fmt.Errorf("keep must be at least 1")
 	}
+
+	log.Info("prune file cache")
 
 	files, err := getFiles()
 	if err != nil {
@@ -268,6 +281,7 @@ func Prune(keep int) error {
 		// Delete everything after the 'keep' index
 		// e.g. if keep=1, delete from index 1 to end
 		for _, fileToDelete := range versions[keep:] {
+			log.Debug("deleted file", "file", fileToDelete.path)
 			os.RemoveAll(fileToDelete.path)
 		}
 
@@ -285,7 +299,9 @@ func getDownloadDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return path.Join(root, "download"), nil
+	dwDir := path.Join(root, "download")
+	log.Debug(dwDir)
+	return dwDir, nil
 }
 
 func getFiles() ([]string, error) {
@@ -340,6 +356,8 @@ func getFiles() ([]string, error) {
 }
 
 func flattenSingleDirectory(dir string) error {
+	log.Info("flatten directory", "dir", dir)
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return err
