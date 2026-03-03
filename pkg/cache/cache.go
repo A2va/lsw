@@ -78,6 +78,13 @@ func AddFile(name string, url string) error {
 			if err := getter.Get(dst, url); err != nil {
 				return err
 			}
+
+			// If we extracted a folder, check if it needs flattening
+			if err := flattenSingleDirectory(dst); err != nil {
+				// Don't fail hard, just log or ignore?
+				// Better to return error because the structure isn't what we expect.
+				return err
+			}
 		}
 	}
 
@@ -330,4 +337,38 @@ func getFiles() ([]string, error) {
 	}
 
 	return entries, nil
+}
+
+func flattenSingleDirectory(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	// Check if there is exactly ONE entry and it is a DIRECTORY
+	if len(entries) != 1 || !entries[0].IsDir() {
+		return nil // Do nothing, it's already flat or contains multiple items
+	}
+
+	singleDirName := entries[0].Name()
+	singleDirPath := filepath.Join(dir, singleDirName)
+
+	// Read the contents of that single directory
+	subEntries, err := os.ReadDir(singleDirPath)
+	if err != nil {
+		return err
+	}
+
+	// Move every item from inside the subfolder to the root
+	for _, entry := range subEntries {
+		oldPath := filepath.Join(singleDirPath, entry.Name())
+		newPath := filepath.Join(dir, entry.Name())
+
+		if err := os.Rename(oldPath, newPath); err != nil {
+			return err
+		}
+	}
+
+	// Remove the now-empty subfolder
+	return os.Remove(singleDirPath)
 }

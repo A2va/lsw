@@ -199,7 +199,7 @@ func TestAddFile_Archive(t *testing.T) {
 	}
 
 	// Should contain specific files from that zip
-	expectedFile := filepath.Join(path, "OpenSSH-Win64", "ssh.exe") // The zip contains a root folder OpenSSH-Win64
+	expectedFile := filepath.Join(path, "ssh.exe") // The zip contains a root folder OpenSSH-Win64
 	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
 		t.Errorf("Did not find expected content inside zip: %s", expectedFile)
 	}
