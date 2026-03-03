@@ -46,7 +46,7 @@ func GetCacheDir() (string, error) {
 	return filepath.Join(home, ".cache", "lsw"), nil
 }
 
-func AddFile(name string, url string) error {
+func Add(name string, url string) error {
 	cacheDir, err := getDownloadDir()
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func AddFile(name string, url string) error {
 }
 
 // Retrieve a file from the cache
-func GetFile(requestedPath string) (string, error) {
+func Get(requestedPath string) (string, error) {
 	log.Info("get file in cache", "path", requestedPath)
 
 	if path, ok := resolvedPathCache[requestedPath]; ok {

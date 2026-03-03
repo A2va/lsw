@@ -27,13 +27,13 @@ func TestBasic(t *testing.T) {
 	os.WriteFile(path, []byte(content), 0644)
 	url := "file://" + path
 
-	if err := AddFile(targetName, url); err != nil {
-		t.Fatalf("AddFile failed: %v", err)
+	if err := Add(targetName, url); err != nil {
+		t.Fatalf("Add failed: %v", err)
 	}
 
-	path, err := GetFile(targetName)
+	path, err := Get(targetName)
 	if err != nil {
-		t.Fatalf("GetFile failed: %v", err)
+		t.Fatalf("Get failed: %v", err)
 	}
 
 	checkContent(t, path, "CONTENT")
@@ -57,7 +57,7 @@ func TestPrune(t *testing.T) {
 		src := filepath.Join(tmpSource, fmt.Sprintf("v%d.iso", i))
 		os.WriteFile(src, []byte(content), 0644)
 
-		if err := AddFile(targetName, "file://"+src); err != nil {
+		if err := Add(targetName, "file://"+src); err != nil {
 			t.Fatalf("Failed to add v%d: %v", i, err)
 		}
 		time.Sleep(50 * time.Millisecond) // Ensure ModTime differs
@@ -80,7 +80,7 @@ func TestPrune(t *testing.T) {
 	}
 
 	// Verify the remaining file is actually the newest (V2)
-	path, err := GetFile(targetName)
+	path, err := Get(targetName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,13 +115,13 @@ func TestCacheWorkflow(t *testing.T) {
 
 	// --- STEP 1: Initial Install ---
 	t.Run("1_Install_V1", func(t *testing.T) {
-		if err := AddFile(targetName, v1URL); err != nil {
-			t.Fatalf("AddFile failed: %v", err)
+		if err := Add(targetName, v1URL); err != nil {
+			t.Fatalf("Add failed: %v", err)
 		}
 
-		path, err := GetFile(targetName)
+		path, err := Get(targetName)
 		if err != nil {
-			t.Fatalf("GetFile failed: %v", err)
+			t.Fatalf("Get failed: %v", err)
 		}
 
 		checkContent(t, path, v1Content)
@@ -133,13 +133,13 @@ func TestCacheWorkflow(t *testing.T) {
 	// --- STEP 2: Upgrade ---
 	t.Run("2_Upgrade_To_V2", func(t *testing.T) {
 		// Even though V1 exists, adding V2 should take precedence
-		if err := AddFile(targetName, v2URL); err != nil {
+		if err := Add(targetName, v2URL); err != nil {
 			t.Fatalf("AddFile failed: %v", err)
 		}
 
-		path, err := GetFile(targetName)
+		path, err := Get(targetName)
 		if err != nil {
-			t.Fatalf("GetFile failed: %v", err)
+			t.Fatalf("Get failed: %v", err)
 		}
 
 		checkContent(t, path, v2Content)
@@ -150,13 +150,13 @@ func TestCacheWorkflow(t *testing.T) {
 	t.Run("3_Downgrade_To_V1", func(t *testing.T) {
 		// We re-add V1. It exists in cache, but AddFile MUST 'touch' it
 		// so it becomes newer than V2.
-		if err := AddFile(targetName, v1URL); err != nil {
-			t.Fatalf("AddFile failed: %v", err)
+		if err := Add(targetName, v1URL); err != nil {
+			t.Fatalf("Add failed: %v", err)
 		}
 
-		path, err := GetFile(targetName)
+		path, err := Get(targetName)
 		if err != nil {
-			t.Fatalf("GetFile failed: %v", err)
+			t.Fatalf("Get failed: %v", err)
 		}
 
 		checkContent(t, path, v1Content)
@@ -177,14 +177,14 @@ func TestAddFile_Archive(t *testing.T) {
 	// Request: Store in "OpenSSH" (implied directory, no extension)
 	targetName := "OpenSSH"
 
-	if err := AddFile(targetName, url); err != nil {
-		t.Fatalf("AddFile failed: %v", err)
+	if err := Add(targetName, url); err != nil {
+		t.Fatalf("Add failed: %v", err)
 	}
 
 	// Retrieve
-	path, err := GetFile(targetName)
+	path, err := Get(targetName)
 	if err != nil {
-		t.Fatalf("GetFile failed: %v", err)
+		t.Fatalf("Get failed: %v", err)
 	}
 
 	// Verification
