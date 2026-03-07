@@ -47,7 +47,7 @@ func GetCacheDir() (string, error) {
 }
 
 func Add(name string, url string) error {
-	cacheDir, err := getDownloadDir()
+	stDir, err := getStoreDir()
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func Add(name string, url string) error {
 	filename := fmt.Sprintf("%s-%s%s", base, hash(url), ext)
 
 	// Maintain subdirectory structure
-	dst := filepath.Join(cacheDir, filepath.Dir(name), filename)
+	dst := filepath.Join(stDir, filepath.Dir(name), filename)
 	log.Debug("", "filename", filename, "base", base, "ext", ext, "dst", dst)
 
 	// TODO Investigate possible needed for case when switching a file to an url
@@ -121,7 +121,7 @@ func Get(requestedPath string) (string, error) {
 		return "", err
 	}
 
-	cacheDir, err := getDownloadDir()
+	stDir, err := getStoreDir()
 	if err != nil {
 		return "", err
 	}
@@ -159,7 +159,7 @@ func Get(requestedPath string) (string, error) {
 		}
 
 		// Check the file stats
-		absPath := filepath.Join(cacheDir, relPath)
+		absPath := filepath.Join(stDir, relPath)
 		info, err := os.Stat(absPath)
 		if err != nil {
 			continue
@@ -225,7 +225,7 @@ func Prune(keep int, maxAgeDays int) error {
 		return err
 	}
 
-	dlDir, err := getDownloadDir()
+	stDir, err := getStoreDir()
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func Prune(keep int, maxAgeDays int) error {
 	groups := make(map[string][]cachedFile)
 
 	for _, relPath := range files {
-		absPath := filepath.Join(dlDir, relPath)
+		absPath := filepath.Join(stDir, relPath)
 		info, err := os.Stat(absPath)
 		if err != nil {
 			// If file was deleted concurrently, just skip
@@ -298,14 +298,14 @@ func Prune(keep int, maxAgeDays int) error {
 	return nil
 }
 
-func getDownloadDir() (string, error) {
+func getStoreDir() (string, error) {
 	root, err := GetCacheDir()
 	if err != nil {
 		return "", err
 	}
-	dwDir := path.Join(root, "download")
-	log.Debug(dwDir)
-	return dwDir, nil
+	stDir := path.Join(root, "store")
+	log.Debug(stDir)
+	return stDir, nil
 }
 
 func getFiles() ([]string, error) {
@@ -314,20 +314,20 @@ func getFiles() ([]string, error) {
 		return fileListCache, nil
 	}
 
-	dlDir, err := getDownloadDir()
+	stDir, err := getStoreDir()
 	if err != nil {
 		return []string{}, err
 	}
 
 	// Walk into the cache directory
 	var entries []string
-	err = filepath.WalkDir(dlDir, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(stDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
 		// Don't include the root folder itself
-		if path == dlDir {
+		if path == stDir {
 			return nil
 		}
 
@@ -335,7 +335,7 @@ func getFiles() ([]string, error) {
 		// If it's a directory, we add it, but we SKIP walking inside it.
 		// Detect Artifacts (Files OR Directories)
 		if artifactReg.MatchString(d.Name()) {
-			rel, err := filepath.Rel(dlDir, path)
+			rel, err := filepath.Rel(stDir, path)
 			if err != nil {
 				return err
 			}
