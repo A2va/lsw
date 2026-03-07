@@ -11,7 +11,7 @@ import (
 func TestBasic(t *testing.T) {
 	// Reset the internal cache
 	fileListCache = nil
-	resolvedPathCache = make(map[string]string)
+	resolvedPathCache = make(map[string]CachedFile)
 
 	tmpCache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", tmpCache)
@@ -31,18 +31,18 @@ func TestBasic(t *testing.T) {
 		t.Fatalf("Add failed: %v", err)
 	}
 
-	path, err := Get(targetName)
+	item, err := Get(targetName)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
 
-	checkContent(t, path, "CONTENT")
+	checkContent(t, item.Path, "CONTENT")
 }
 
 func TestPrune(t *testing.T) {
 	// Reset globals
 	fileListCache = nil
-	resolvedPathCache = make(map[string]string)
+	resolvedPathCache = make(map[string]CachedFile)
 
 	tmpCache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", tmpCache)
@@ -80,12 +80,12 @@ func TestPrune(t *testing.T) {
 	}
 
 	// Verify the remaining file is actually the newest (V2)
-	path, err := Get(targetName)
+	item, err := Get(targetName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	content, _ := os.ReadFile(path)
+	content, _ := os.ReadFile(item.Path)
 	if string(content) != "CONTENT v2" {
 		t.Errorf("Prune deleted the wrong file! Remaining content: %s", string(content))
 	}
@@ -94,7 +94,7 @@ func TestPrune(t *testing.T) {
 func TestCacheWorkflow(t *testing.T) {
 	// Reset the internal cache
 	fileListCache = nil
-	resolvedPathCache = make(map[string]string)
+	resolvedPathCache = make(map[string]CachedFile)
 
 	tmpCache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", tmpCache)
@@ -119,12 +119,12 @@ func TestCacheWorkflow(t *testing.T) {
 			t.Fatalf("Add failed: %v", err)
 		}
 
-		path, err := Get(targetName)
+		item, err := Get(targetName)
 		if err != nil {
 			t.Fatalf("Get failed: %v", err)
 		}
 
-		checkContent(t, path, v1Content)
+		checkContent(t, item.Path, v1Content)
 	})
 
 	// Sleep to ensure file system timestamp changes (needed for some OSs)
@@ -137,12 +137,12 @@ func TestCacheWorkflow(t *testing.T) {
 			t.Fatalf("AddFile failed: %v", err)
 		}
 
-		path, err := Get(targetName)
+		item, err := Get(targetName)
 		if err != nil {
 			t.Fatalf("Get failed: %v", err)
 		}
 
-		checkContent(t, path, v2Content)
+		checkContent(t, item.Path, v2Content)
 	})
 
 	time.Sleep(100 * time.Millisecond)
@@ -154,19 +154,19 @@ func TestCacheWorkflow(t *testing.T) {
 			t.Fatalf("Add failed: %v", err)
 		}
 
-		path, err := Get(targetName)
+		item, err := Get(targetName)
 		if err != nil {
 			t.Fatalf("Get failed: %v", err)
 		}
 
-		checkContent(t, path, v1Content)
+		checkContent(t, item.Path, v1Content)
 	})
 }
 
 func TestAddFile_Archive(t *testing.T) {
 	// Reset Cache
 	fileListCache = nil
-	resolvedPathCache = make(map[string]string)
+	resolvedPathCache = make(map[string]CachedFile)
 
 	tmpCache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", tmpCache)
@@ -182,31 +182,31 @@ func TestAddFile_Archive(t *testing.T) {
 	}
 
 	// Retrieve
-	path, err := Get(targetName)
+	item, err := Get(targetName)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
 
 	// Verification
-	info, err := os.Stat(path)
+	info, err := os.Stat(item.Path)
 	if err != nil {
 		t.Fatalf("Stat failed: %v", err)
 	}
 
 	// Should be a directory (because it was a zip)
 	if !info.IsDir() {
-		t.Errorf("Expected path to be a directory (extracted zip), got file: %s", path)
+		t.Errorf("Expected path to be a directory (extracted zip), got file: %s", item.Path)
 	}
 
 	// Should contain specific files from that zip
-	expectedFile := filepath.Join(path, "ssh.exe") // The zip contains a root folder OpenSSH-Win64
+	expectedFile := filepath.Join(item.Path, "ssh.exe") // The zip contains a root folder OpenSSH-Win64
 	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
 		t.Errorf("Did not find expected content inside zip: %s", expectedFile)
 	}
 
 	// Check Directory Name Format
 	// Expected: OpenSSH-<hash>
-	base := filepath.Base(path)
+	base := filepath.Base(item.Path)
 	if len(base) < 12 || base[:8] != "OpenSSH-" { // OpenSSH- + 10 chars hash
 		t.Errorf("Directory name format wrong. Expected OpenSSH-HASH..., got: %s", base)
 	}

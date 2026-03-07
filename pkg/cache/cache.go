@@ -20,18 +20,48 @@ import (
 
 // CachedFile represents a retrieved item from the cache
 type CachedFile struct {
-	Path string // Absolute path on disk (e.g. .../downloads/image-a1b2c.iso)
-	Name string // Original filename (e.g. image.iso)
+	// Path is the absolute path on disk
+	// e.g. /home/user/.cache/lsw/downloads/subdir/nginx-a1b2c.tar.gz
+	Path string
+
+	// RelPath is the path relative to the downloads directory
+	// e.g. subdir/nginx-a1b2c.tar.gz
+	RelPath string
 }
 
 var ErrFileNotFound = errors.New("file not found in cache")
 
 var fileListCache []string
-var resolvedPathCache map[string]string
+var resolvedPathCache map[string]CachedFile
 
 // regex to identify artifacts: ends with hyphen + 10 hex chars + optional extension
 // e.g. "image-a1b2c3d4e5.iso" or "OpenSSH-a1b2c3d4e5"
 var artifactReg = regexp.MustCompile(`-[0-9a-f]{10}(\.[a-zA-Z0-9]+)?$`)
+
+// Name returns the real filename on disk
+// e.g. nginx-a1b2c.tar.gz
+func (c CachedFile) Name() string {
+	return filepath.Base(c.Path)
+}
+
+// Dir returns the relative directory containing the file
+// e.g. subdir
+func (c CachedFile) Dir() string {
+	return filepath.Dir(c.RelPath)
+}
+
+// VirtualName returns the filename without the hash
+// e.g. nginx.tar.gz
+func (c CachedFile) VirtualName() string {
+	return stripHash(c.Name())
+}
+
+// VirtualPath returns the relative path without the hash
+// This is perfect for ISO structure: destination = source.VirtualPath()
+// e.g. subdir/nginx.tar.gz
+func (c CachedFile) VirtualPath() string {
+	return filepath.Join(c.Dir(), c.VirtualName())
+}
 
 func Hash(s string) string {
 	h := sha256.Sum256([]byte(s))
@@ -117,22 +147,22 @@ func Add(name string, url string) error {
 }
 
 // Retrieve a file from the cache
-func Get(requestedPath string) (string, error) {
+func Get(requestedPath string) (CachedFile, error) {
 	log.Info("get file in cache", "path", requestedPath)
 
-	if path, ok := resolvedPathCache[requestedPath]; ok {
-		return path, nil
+	if item, ok := resolvedPathCache[requestedPath]; ok {
+		return item, nil
 	}
 
 	// Get list of all files in cache
 	files, err := getFiles()
 	if err != nil {
-		return "", err
+		return CachedFile{}, err
 	}
 
 	stDir, err := getStoreDir()
 	if err != nil {
-		return "", err
+		return CachedFile{}, err
 	}
 
 	// Parse the input path (e.g. "subdir/file.txt")
@@ -183,7 +213,7 @@ func Get(requestedPath string) (string, error) {
 	}
 
 	if !found {
-		return "", fmt.Errorf("%w: %s", ErrFileNotFound, requestedPath)
+		return CachedFile{}, fmt.Errorf("%w: %s", ErrFileNotFound, requestedPath)
 	}
 
 	log.Info("found file", "path", newestPath, "time", newestTime)
@@ -195,8 +225,18 @@ func Get(requestedPath string) (string, error) {
 		// Log error if you have a logger
 	}
 
-	resolvedPathCache[requestedPath] = newestPath
-	return newestPath, nil
+	relPath, err := filepath.Rel(stDir, newestPath)
+	if err != nil {
+		return CachedFile{}, err
+	}
+
+	result := CachedFile{
+		Path:    newestPath,
+		RelPath: relPath,
+	}
+
+	resolvedPathCache[requestedPath] = result
+	return result, nil
 }
 
 func IsNotCached(err error) bool {
@@ -259,23 +299,10 @@ func Prune(keep int, maxAgeDays int) error {
 		// Logic to reconstruct the "original" name from "name-hash.ext"
 		// "subdir/image-a1b2c.iso" -> dir: "subdir", file: "image-a1b2c.iso"
 		dir := filepath.Dir(relPath)
-		base := filepath.Base(relPath)
-		ext := filepath.Ext(base) // ".iso"
-
-		// Remove extension: "image-a1b2c"
-		nameNoExt := strings.TrimSuffix(base, ext)
-
-		// Find last hyphen to identify where name ends and hash starts
-		lastHyphen := strings.LastIndex(nameNoExt, "-")
-		if lastHyphen == -1 {
-			// File doesn't match our format? Skip it to be safe.
-			continue
-		}
-
-		originalName := nameNoExt[:lastHyphen]
+		originalName := stripHash(filepath.Base(relPath))
 
 		// Group Key: "subdir/image.iso"
-		key := filepath.Join(dir, originalName+ext)
+		key := filepath.Join(dir, originalName)
 
 		groups[key] = append(groups[key], cachedFile{
 			path:    absPath,
@@ -309,13 +336,13 @@ func Prune(keep int, maxAgeDays int) error {
 
 	// Invalidate cache
 	fileListCache = nil
-	resolvedPathCache = make(map[string]string)
+	resolvedPathCache = make(map[string]CachedFile)
 
 	return nil
 }
 
 // Helper to extract "image.iso" from "image-a1b2c.iso"
-func parseOriginalName(hashedFilename string) string {
+func stripHash(hashedFilename string) string {
 	ext := filepath.Ext(hashedFilename)
 	nameNoExt := strings.TrimSuffix(hashedFilename, ext)
 
