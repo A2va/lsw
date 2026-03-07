@@ -70,7 +70,7 @@ func TestPrune(t *testing.T) {
 	}
 
 	// Keep only the 1 newest file
-	if err := Prune(1); err != nil {
+	if err := Prune(1, 2); err != nil {
 		t.Fatalf("Prune failed: %v", err)
 	}
 

@@ -213,7 +213,7 @@ type cachedFile struct {
 
 // Prune removes old versions of files, keeping only the 'keep' most recent versions.
 // accurate grouping depends on the naming convention: name-hash.ext
-func Prune(keep int) error {
+func Prune(keep int, maxAgeDays int) error {
 	if keep < 1 {
 		return fmt.Errorf("keep must be at least 1")
 	}
@@ -267,6 +267,8 @@ func Prune(keep int) error {
 		})
 	}
 
+	cutoff := time.Now().AddDate(0, 0, -maxAgeDays)
+
 	for _, versions := range groups {
 		// If we don't have enough versions to prune, skip
 		if len(versions) <= keep {
@@ -280,9 +282,11 @@ func Prune(keep int) error {
 
 		// Delete everything after the 'keep' index
 		// e.g. if keep=1, delete from index 1 to end
-		for _, fileToDelete := range versions[keep:] {
-			log.Debug("deleted file", "file", fileToDelete.path)
-			os.RemoveAll(fileToDelete.path)
+		for _, fileCandidate := range versions[keep:] {
+			if fileCandidate.modTime.Before(cutoff) {
+				log.Debug("deleted file", "file", fileCandidate.path)
+				os.RemoveAll(fileCandidate.path)
+			}
 		}
 
 	}

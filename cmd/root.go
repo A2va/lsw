@@ -34,7 +34,7 @@ func initLog(debug bool) {
 		log.SetLevel(log.DebugLevel)
 		log.SetOutput(io.MultiWriter(os.Stderr, fileLogger))
 	} else {
-		log.SetLevel(log.DebugLevel)
+		log.SetLevel(log.InfoLevel)
 		log.SetOutput(fileLogger)
 	}
 
@@ -109,7 +109,7 @@ Features:
 				log.Error("error loading config file", "err", err)
 			}
 
-			err = cache.Prune(1)
+			err = cache.Prune(1, 20)
 			if err != nil {
 				log.Warnf("error to prune the cache: %w", err)
 			}
