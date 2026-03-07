@@ -2,6 +2,7 @@ package cache
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -17,6 +18,14 @@ import (
 	"github.com/hashicorp/go-getter"
 )
 
+// CachedFile represents a retrieved item from the cache
+type CachedFile struct {
+	Path string // Absolute path on disk (e.g. .../downloads/image-a1b2c.iso)
+	Name string // Original filename (e.g. image.iso)
+}
+
+var ErrFileNotFound = errors.New("file not found in cache")
+
 var fileListCache []string
 var resolvedPathCache map[string]string
 
@@ -24,7 +33,7 @@ var resolvedPathCache map[string]string
 // e.g. "image-a1b2c3d4e5.iso" or "OpenSSH-a1b2c3d4e5"
 var artifactReg = regexp.MustCompile(`-[0-9a-f]{10}(\.[a-zA-Z0-9]+)?$`)
 
-func hash(s string) string {
+func Hash(s string) string {
 	h := sha256.Sum256([]byte(s))
 	// %x converts bytes to hex string automatically
 	// 5 bytes -> 10 hex chars
@@ -56,7 +65,7 @@ func Add(name string, url string) error {
 
 	ext := filepath.Ext(name)
 	base := strings.TrimSuffix(filepath.Base(name), ext)
-	filename := fmt.Sprintf("%s-%s%s", base, hash(url), ext)
+	filename := fmt.Sprintf("%s-%s%s", base, Hash(url), ext)
 
 	// Maintain subdirectory structure
 	dst := filepath.Join(stDir, filepath.Dir(name), filename)
@@ -174,7 +183,7 @@ func Get(requestedPath string) (string, error) {
 	}
 
 	if !found {
-		return "", fmt.Errorf("file not found in cache: %s", requestedPath)
+		return "", fmt.Errorf("%w: %s", ErrFileNotFound, requestedPath)
 	}
 
 	log.Info("found file", "path", newestPath, "time", newestTime)
@@ -188,6 +197,13 @@ func Get(requestedPath string) (string, error) {
 
 	resolvedPathCache[requestedPath] = newestPath
 	return newestPath, nil
+}
+
+func IsNotCached(err error) bool {
+	if errors.Is(err, ErrFileNotFound) {
+		return true
+	}
+	return false
 }
 
 func Init() error {
@@ -296,6 +312,20 @@ func Prune(keep int, maxAgeDays int) error {
 	resolvedPathCache = make(map[string]string)
 
 	return nil
+}
+
+// Helper to extract "image.iso" from "image-a1b2c.iso"
+func parseOriginalName(hashedFilename string) string {
+	ext := filepath.Ext(hashedFilename)
+	nameNoExt := strings.TrimSuffix(hashedFilename, ext)
+
+	// Find the separator dash introduced by AddFile
+	lastHyphen := strings.LastIndex(nameNoExt, "-")
+	if lastHyphen == -1 {
+		return hashedFilename // Fallback, shouldn't happen with our regex
+	}
+
+	return nameNoExt[:lastHyphen] + ext
 }
 
 func getStoreDir() (string, error) {
