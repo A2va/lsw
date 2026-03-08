@@ -30,7 +30,7 @@ type CachedFile struct {
 var ErrFileNotFound = errors.New("file not found in cache")
 
 var fileListCache []string
-var resolvedPathCache map[string]CachedFile
+var resolvedPathCache = make(map[string]CachedFile)
 
 // regex to identify artifacts: ends with hyphen + 10 hex chars + optional extension
 // e.g. "image-a1b2c3d4e5.iso" or "OpenSSH-a1b2c3d4e5"
@@ -84,6 +84,8 @@ func GetCacheDir() (string, error) {
 }
 
 func Add(name string, url string) error {
+	// FIXME test if url is an uri
+
 	stDir, err := getStoreDir()
 	if err != nil {
 		return err

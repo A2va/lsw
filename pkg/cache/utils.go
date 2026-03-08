@@ -7,8 +7,45 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
+	"github.com/plus3it/gorecurcopy"
 )
+
+func CopyFromCache(targetDir string, files []string) error {
+	if err := utils.CreateDir(targetDir, 0755); err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		item, err := Get(file)
+		if err != nil {
+			return err
+		}
+
+		info, err := os.Stat(item.Path)
+		if err != nil {
+			return err
+		}
+
+		dst := path.Join(targetDir, item.VirtualName())
+		log.Debug("copy from cache", "src", item.Path, "dest", dst)
+
+		if info.IsDir() {
+			utils.CreateDir(dst, 0755)
+			err = gorecurcopy.CopyDirectory(item.Path, dst)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = gorecurcopy.Copy(item.Path, dst)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 // Helper to extract "image.iso" from "image-a1b2c.iso"
 func stripHash(hashedFilename string) string {
