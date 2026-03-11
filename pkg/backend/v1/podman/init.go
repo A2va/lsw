@@ -105,6 +105,8 @@ func pruneOldImages(c context.Context) error {
 
 				log.Debug("prune container", "id", container.ID)
 			}
+
+			imagesToRemove = append(imagesToRemove, image.ID)
 		}
 	}
 
@@ -138,30 +140,42 @@ func buildImage(c context.Context) error {
 
 	noCache := true
 	remove := true
+	layers := false
+
 	// Use caching when developing the project to have a better iteration
 	if version.Version == "dev" {
 		noCache = false
 		remove = false
-	}
-
-	// FIXME find a way to not log to stdout when podman is building the image
-
-	buildOptions := types.BuildOptions{
-		BuildOptions: buildahDefine.BuildOptions{
-			NoCache:                noCache,
-			RemoveIntermediateCtrs: remove,
-			Output:                 targetTag,
-		},
+		layers = true
 	}
 
 	dockerfilePath, err := getDockerfile()
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
-	_, err = images.Build(c, []string{dockerfilePath}, buildOptions)
+	contextDir := path.Dir(dockerfilePath)
+	dockerfileName := path.Base(dockerfilePath)
+
+	buildOptions := types.BuildOptions{
+		BuildOptions: buildahDefine.BuildOptions{
+			ContextDirectory:        contextDir,
+			NoCache:                 noCache,
+			RemoveIntermediateCtrs:  remove,
+			ForceRmIntermediateCtrs: remove,
+			Layers:                  layers,
+			Output:                  targetTag,
+			PullPolicy:              buildahDefine.PullIfMissing,
+			// Cache only works if the ouput format are defined
+			OutputFormat: buildahDefine.OCIv1ImageManifest,
+			// OutputFormat: buildahDefine.Dockerv2ImageManifest,
+		},
+	}
+	log.Debug("build options", "opts", buildOptions)
+
+	_, err = images.Build(c, []string{dockerfileName}, buildOptions)
 	if err != nil {
-		return err
+		log.Fatalf("err: %w", err)
 	}
 
 	return nil
@@ -175,7 +189,6 @@ func Init() {
 		log.Fatal(err)
 	}
 
-
 	// Prune old image only in dev version, to rely on the podman cache
 	if config.GetVersion().Version != "dev" {
 		err = pruneOldImages(c)
@@ -183,7 +196,6 @@ func Init() {
 			log.Fatal(err)
 		}
 	}
-
 
 	buildImage(c)
 }
