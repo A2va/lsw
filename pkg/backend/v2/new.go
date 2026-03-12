@@ -309,15 +309,21 @@ func New(arch string, args NewV2Argument) error {
 		return fmt.Errorf("failed to connect to incus socket: %w", err)
 	}
 
-	cache, err := cache.GetCacheDir()
+	cacheDir, err := cache.GetCacheDir()
 	if err != nil {
 		log.Fatal("cannot get cache dir")
 	}
-	downloadsDir := path.Join(cache, "downloads")
-	isoDir := path.Join(cache, "iso")
 
-	// FIXME might need to check if the port is available
-	//
+	virtioIso, err := cache.Get("virtio.iso")
+	if err != nil {
+		return err
+	}
+
+	softwareIso, err := cache.Get("software.iso")
+	if err != nil {
+		return err
+	}
+
 	port, err := getFreePort()
 	if err != nil {
 		return err
@@ -371,7 +377,7 @@ func New(arch string, args NewV2Argument) error {
 					"type": "disk",
 					// USB bus supported since incus v6.11
 					"io.bus": "usb",
-					"source": path.Join(downloadsDir, "virtio.iso"),
+					"source": virtioIso.Path,
 				},
 				"autounattend": {
 					"type":   "disk",
@@ -380,7 +386,7 @@ func New(arch string, args NewV2Argument) error {
 				},
 				"install": {
 					"type":          "disk",
-					"source":        path.Join(downloadsDir, "windows-server.iso"),
+					"source":        path.Join(cacheDir, "windows-server.iso"),
 					"boot.priority": "10",
 				},
 			},
@@ -393,7 +399,7 @@ func New(arch string, args NewV2Argument) error {
 		"software": {
 			"type":   "disk",
 			"io.bus": "usb",
-			"source": path.Join(isoDir, "software.iso"),
+			"source": softwareIso.Path,
 		},
 		"agent": {
 			"type":   "disk",
