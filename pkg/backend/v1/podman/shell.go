@@ -9,13 +9,11 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	"github.com/containers/podman/v6/pkg/api/handlers"
-	"github.com/containers/podman/v6/pkg/bindings"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/docker/docker/api/types/container"
 )
 
-func attachMethod(c context.Context, nameOrID string) error {
-	attachReady := make(chan bool)
+func attachMethod(c context.Context, nameOrID string, attachReady chan bool) error {
 	err := containers.Attach(c, nameOrID, os.Stdin, os.Stdout, os.Stderr, attachReady, &containers.AttachOptions{})
 	if err != nil {
 		return err
@@ -54,7 +52,7 @@ func Shell(bottle *config.Bottle) error {
 	// FIXME Cannot create two shell session of the same bottle
 	log.Info("shelling into container (podman)", "name", bottle.Name)
 
-	c, err := bindings.NewConnection(context.Background(), "unix:///run/podman/podman.sock")
+	c, err := podmanClient()
 	if err != nil {
 		return err
 	}
@@ -69,20 +67,26 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
+	attachReady := make(chan bool, 1)
+	attachErr := make(chan error, 1)
+
+	// Hook up the streams in the background
+	go func() {
+		attachErr <- attachMethod(c, bottle.Name, attachReady)
+	}()
+
+	// Wait until Podman signals that it is actively listening
+	<-attachReady
+
 	err = containers.Start(c, bottle.Name, &containers.StartOptions{})
 	if err != nil {
 		return err
 	}
 
-	err = attachMethod(c, bottle.Name)
-	if err != nil {
-		return err
-	}
+	defer func() {
+		defer containers.Stop(c, bottle.Name, &containers.StopOptions{})
+		defer containers.Remove(c, bottle.Name, &containers.RemoveOptions{})
+	}()
 
-	err = containers.Stop(c, bottle.Name, &containers.StopOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return <-attachErr
 }
