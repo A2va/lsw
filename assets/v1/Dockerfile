@@ -138,14 +138,16 @@ RUN mv "${WINEPREFIX}/drive_c/Program Files/7-Zip/7za.exe" "${WINEPREFIX}/drive_
 RUN wine-add-path "C:\Program Files\7-Zip"
 
 # Install rustup
-RUN curl -L -o /tmp/rustup-init.exe https://win.rustup.rs/x86_64
+# Pin to rustup 1.28.0 which is known to work in Wine
+# RUN curl -L -o /tmp/rustup-init.exe https://win.rustup.rs/x86_64
+RUN curl -L -o /tmp/rustup-init.exe https://static.rust-lang.org/rustup/archive/1.28.0/x86_64-pc-windows-msvc/rustup-init.exe
 RUN wine Z:/tmp/rustup-init.exe -vy
 RUN wineserver -w
 
 # =========================================================
 # Stage 2: Minimal RootFS Builder
 # =========================================================
-FROM fedora:42 AS rootfs-builder
+FROM fedora:43 AS rootfs-builder
 
 # Create a directory to hold a minimal OS
 RUN mkdir -p /mnt/rootfs
