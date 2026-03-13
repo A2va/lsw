@@ -23,11 +23,11 @@ func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 	volumeName := fmt.Sprintf("lsw-v1-%s", bottle.Name)
 
 	var mounts []specs.Mount
+	var namedVolumes []*specgen.NamedVolume
 
-	mounts = append(mounts, specs.Mount{
-		Type:        "volume",
-		Source:      volumeName,
-		Destination: "/opt/prefix",
+	namedVolumes = append(namedVolumes, &specgen.NamedVolume{
+		Name: volumeName,
+		Dest: "/opt/prefix",
 	})
 
 	mounts = append(mounts, specs.Mount{
@@ -53,8 +53,9 @@ func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 			Terminal: &t,
 		},
 		ContainerStorageConfig: specgen.ContainerStorageConfig{
-			Image:  image,
-			Mounts: mounts,
+			Image:   image,
+			Mounts:  mounts,
+			Volumes: namedVolumes,
 		},
 		ContainerHealthCheckConfig: specgen.ContainerHealthCheckConfig{
 			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
