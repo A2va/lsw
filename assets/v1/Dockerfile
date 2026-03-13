@@ -11,7 +11,7 @@ ARG WINEPREFIX=/opt/prefix
 # =========================================================
 # Stage 1: Populate wine prefix with tools
 # =========================================================
-FROM fedora:42 AS msvc-builder
+FROM fedora:43 AS msvc-builder
 
 ARG WINEPREFIX
 ARG POWERSHELL_VERSION
@@ -153,7 +153,7 @@ RUN mkdir -p /mnt/rootfs
 # Install strictly necessary dependencies into /mnt/rootfs
 RUN dnf install -y \
     --installroot=/mnt/rootfs \
-    --releasever=42 \
+    --releasever=43 \
     --setopt=install_weak_deps=False \
     --setopt=tsflags=nodocs \
     --use-host-config \
