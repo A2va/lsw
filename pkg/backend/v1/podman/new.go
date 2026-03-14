@@ -34,6 +34,7 @@ func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 		Type:        "bind",
 		Source:      cwd,
 		Destination: cwd,
+		Options:     []string{"rbind", "z"},
 	})
 
 	for _, m := range bottle.Mounts {
@@ -41,7 +42,7 @@ func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 		if err != nil {
 			return specgen.SpecGenerator{}, err
 		}
-		mounts = append(mounts, specs.Mount{Type: "bind", Source: mountPath, Destination: mountPath})
+		mounts = append(mounts, specs.Mount{Type: "bind", Source: mountPath, Destination: mountPath, Options: []string{"rbind", "z"}})
 	}
 
 	t := true
