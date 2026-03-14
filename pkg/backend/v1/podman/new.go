@@ -57,6 +57,7 @@ func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 			Image:   image,
 			Mounts:  mounts,
 			Volumes: namedVolumes,
+			WorkDir: cwd,
 		},
 		ContainerHealthCheckConfig: specgen.ContainerHealthCheckConfig{
 			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
