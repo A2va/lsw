@@ -202,6 +202,10 @@ func CreateAllCacheDirectories() (string, error) {
 }
 
 func GetBottle(name string) (*config.Bottle, bool) {
+	if name == "" {
+		return nil, false
+	}
+
 	cfg := config.Get()
 
 	var bottleName string
