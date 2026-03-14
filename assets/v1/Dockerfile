@@ -138,10 +138,11 @@ RUN mv "${WINEPREFIX}/drive_c/Program Files/7-Zip/7za.exe" "${WINEPREFIX}/drive_
 RUN wine-add-path "C:\Program Files\7-Zip"
 
 # Install rustup
-# Pin to rustup 1.28.0 which is known to work in Wine
+# Pin to rustup 1.28.2 which is known to work in Wine
 # RUN curl -L -o /tmp/rustup-init.exe https://win.rustup.rs/x86_64
-RUN curl -L -o /tmp/rustup-init.exe https://static.rust-lang.org/rustup/archive/1.28.0/x86_64-pc-windows-msvc/rustup-init.exe
+RUN curl -L -o /tmp/rustup-init.exe https://static.rust-lang.org/rustup/archive/1.28.2/x86_64-pc-windows-msvc/rustup-init.exe
 RUN wine Z:/tmp/rustup-init.exe -vy
+RUN wine rustup set auto-self-update disable
 RUN wineserver -w
 
 # =========================================================
