@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -29,18 +30,18 @@ func computeStateHash(files []string) string {
 func downloadOpenSSH() error {
 	const version = "v8.1.0.0p1-Beta"
 	url := fmt.Sprintf("https://github.com/PowerShell/Win32-OpenSSH/releases/download/%s/OpenSSH-Win64.zip", version)
-	return cache.Add("OpenSSH", url)
+	return cache.Add("v2/OpenSSH", url)
 }
 
 func downloadWinFsp() error {
 	const url = "https://github.com/winfsp/winfsp/releases/download/v2.1/winfsp-2.1.25156.msi"
-	return cache.Add("winfsp.msi", url)
+	return cache.Add("v2/winfsp.msi", url)
 }
 
 func downloadVirtio() error {
 	// const url = "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/latest-virtio/virtio-win.iso"
 	const url = "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.285-1/virtio-win-0.1.285.iso"
-	return cache.Add("virtio.iso", url)
+	return cache.Add("v2/virtio.iso", url)
 }
 
 func downloadIncusAgent() error {
@@ -58,7 +59,7 @@ func downloadIncusAgent() error {
 
 	// Make sure that incus agent version match the system one
 	url := fmt.Sprintf("https://github.com/lxc/incus/releases/download/v%s/bin.windows.incus-agent.x86_64.exe", incusVersion)
-	return cache.Add("incus-agent.exe", url)
+	return cache.Add("v2/incus-agent.exe", url)
 }
 
 func downloadUnattendAssets() error {
@@ -68,21 +69,21 @@ func downloadUnattendAssets() error {
 	}
 
 	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/v2", version.Commit)
-	err := cache.Add("autounattend.xml", url+"/autounattend.xml")
+	err := cache.Add("v2/autounattend.xml", url+"/autounattend.xml")
 	if err != nil {
 		return err
 	}
-	err = cache.Add("scripts/setup.ps1", url+"/scripts/setup.ps1")
+	err = cache.Add("v2/scripts/setup.ps1", url+"/scripts/setup.ps1")
 	if err != nil {
 		return err
 	}
-	err = cache.Add("scripts/specialize.ps1", url+"/scripts/specialize.ps1")
+	err = cache.Add("v2/scripts/specialize.ps1", url+"/scripts/specialize.ps1")
 	return err
 }
 
 func downloadVsRedistribuable() error {
 	const url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-	return cache.Add("vc_redist.exe", url)
+	return cache.Add("v2/vc_redist.exe", url)
 }
 
 func downloadWindowsIso() (string, error) {
@@ -96,7 +97,6 @@ func downloadWindowsIso() (string, error) {
 // Create a iso to install some software without internet connection
 // filesInIso is an array of name file in the cache
 func createSoftwareISO(filesInIso []string) error {
-
 	var cachedFiles []string
 	for _, file := range filesInIso {
 		item, err := cache.Get(file)
@@ -113,7 +113,7 @@ func createSoftwareISO(filesInIso []string) error {
 
 	stateHash := computeStateHash(cachedFiles)
 
-	// Construct the URL that *would* be used if we generated it
+	// Construct the URL that would be used if we generated it
 	// We need this to calculate the expected file hash in the cache
 	tmpFilename := fmt.Sprintf("software-%s.iso", stateHash)
 	tmpIsoPath := filepath.Join(cacheDir, "tmp", tmpFilename)
@@ -135,7 +135,6 @@ func createSoftwareISO(filesInIso []string) error {
 	if err != nil {
 		// File missing
 		if cache.IsNotCached(err) {
-			log.Debug("ddd")
 			shouldGenerate = true
 		} else {
 			return err
@@ -151,7 +150,8 @@ func createSoftwareISO(filesInIso []string) error {
 	if shouldGenerate {
 		log.Debug("generate software iso")
 		utils.CreateDir(tmpDir, 0755)
-		// defer os.RemoveAll(tmpDir)
+		defer os.RemoveAll(tmpDir)
+		defer os.Remove(tmpIsoPath)
 
 		err = cache.CopyFromCache(tmpDir, filesInIso)
 		if err != nil {
@@ -163,7 +163,7 @@ func createSoftwareISO(filesInIso []string) error {
 			return err
 		}
 
-		return cache.Add("iso/software.iso", expectedUrl)
+		return cache.Add("v2/software.iso", expectedUrl)
 	}
 
 	return nil
@@ -203,12 +203,11 @@ func Init() {
 
 	err = downloadIncusAgent()
 	if err != nil {
-		log.Fatal("cannot download incus agent")
+		log.Fatal("cannot download incus agent: %w", err)
 	}
 
-	ss := []string{"winfsp.msi", "vc_redist.exe", "OpenSSH", "incus-agent.exe"}
-
-	err = createSoftwareISO(ss)
+	sotfwareToPack := []string{"v2/winfsp.msi", "v2/vc_redist.exe", "v2/OpenSSH", "v2/incus-agent.exe"}
+	err = createSoftwareISO(sotfwareToPack)
 	if err != nil {
 		log.Fatal("cannot create software ISO: %w", err)
 	}

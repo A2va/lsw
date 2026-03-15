@@ -159,24 +159,22 @@ func getUnattendXmlFile() (string, error) {
 		wd, _ := os.Getwd()
 		return path.Join(wd, "assets", "v2", "autounattend.xml"), nil
 	}
-	cache, err := cache.GetCacheDir()
-	if err != nil {
-		return "", err
-	}
-	return path.Join(cache, "downloads", "autounattend.xml"), nil
+
+	item, err := cache.Get("v2/autounattend.xml")
+	return item.Path, err
 }
 
 // Copy the assets for creating a autounattend iso file to a temp dir
 func copyUnattendAssetsToDir(d string) error {
-	copyToDirFromCache := func(cachedir string, dir string, file string) {
-		err := utils.CreateDir(path.Join(dir, path.Dir(file)), 0755)
+	copyToDir := func(srcDir string, dstDir string, file string) {
+		err := utils.CreateDir(path.Join(dstDir, path.Dir(file)), 0755)
 		if err != nil {
 			log.Fatal("error creating directory", "err", err)
 		}
 
-		dir = path.Join(dir, file)
-		cachedir = path.Join(cachedir, file)
-		err = gorecurcopy.Copy(cachedir, dir)
+		dstDir = path.Join(dstDir, file)
+		srcDir = path.Join(srcDir, file)
+		err = gorecurcopy.Copy(srcDir, dstDir)
 		if err != nil {
 			log.Fatal("error copying file", "err", err)
 		}
@@ -184,23 +182,15 @@ func copyUnattendAssetsToDir(d string) error {
 
 	log.Debug("temp directory", "dir", d)
 
-	cache, err := cache.GetCacheDir()
-	if err != nil {
-		return err
-	}
-	downloadCache := path.Join(cache, "downloads")
-
 	version := config.GetVersion()
 	if version.Version == "dev" {
 		wd, _ := os.Getwd()
-		wd = path.Join("assets", "v2")
+		wd = path.Join("assets")
 		// copyToDirFromCache(wd, d, "autounattend.xml")
-		copyToDirFromCache(wd, d, "scripts/setup.ps1")
-		copyToDirFromCache(wd, d, "scripts/specialize.ps1")
+		copyToDir(wd, d, "v2/scripts/setup.ps1")
+		copyToDir(wd, d, "v2/scripts/specialize.ps1")
 	} else {
-		// copyToDirFromCache(downloadCache, d, "autounattend.xml")
-		copyToDirFromCache(downloadCache, d, "scripts/setup.ps1")
-		copyToDirFromCache(downloadCache, d, "scripts/specialize.ps1")
+		cache.CopyFromCache(d, []string{"v2/scripts/setup.ps1", "v2/scripts/specialize.ps1"})
 	}
 
 	return nil
@@ -314,12 +304,12 @@ func New(arch string, args NewV2Argument) error {
 		log.Fatal("cannot get cache dir")
 	}
 
-	virtioIso, err := cache.Get("virtio.iso")
+	virtioIso, err := cache.Get("v2/virtio.iso")
 	if err != nil {
 		return err
 	}
 
-	softwareIso, err := cache.Get("software.iso")
+	softwareIso, err := cache.Get("v2/software.iso")
 	if err != nil {
 		return err
 	}

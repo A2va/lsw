@@ -29,12 +29,12 @@ func getDockerfile() (string, error) {
 		wd, _ := os.Getwd()
 		dockerfilePath = path.Join(wd, "assets", "v1", "Dockerfile")
 	} else {
-		err := cache.Add("Dockerfile.v1", url)
+		err := cache.Add("v1/Dockerfile.v1", url)
 		if err != nil {
 			return "", err
 		}
 
-		item, err := cache.Get("Dockerfile.v1")
+		item, err := cache.Get("v1/Dockerfile.v1")
 		if err != nil {
 			return "", err
 		}
