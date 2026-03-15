@@ -2,6 +2,7 @@ package cache
 
 import (
 	"io/fs"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -45,6 +46,19 @@ func CopyFromCache(targetDir string, files []string) error {
 		}
 	}
 	return nil
+}
+
+func isValidURI(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	// Special handling for file scheme
+	if u.Scheme == "file" {
+		// file URIs just need a path
+		return u.Path != ""
+	}
+	return u.Host != ""
 }
 
 // Helper to extract "image.iso" from "image-a1b2c.iso"

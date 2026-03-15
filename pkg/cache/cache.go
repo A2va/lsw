@@ -84,7 +84,9 @@ func GetCacheDir() (string, error) {
 }
 
 func Add(name string, url string) error {
-	// FIXME test if url is an uri
+	if !isValidURI(url) {
+		return fmt.Errorf("not a valid url")
+	}
 
 	stDir, err := getStoreDir()
 	if err != nil {
