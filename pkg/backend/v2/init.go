@@ -68,15 +68,15 @@ func downloadUnattendAssets() error {
 	}
 
 	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/v2", version.Commit)
-	err := cache.Add(url+"/autounattend.xml", "autounattend.xml")
+	err := cache.Add("autounattend.xml", url+"/autounattend.xml")
 	if err != nil {
 		return err
 	}
-	err = cache.Add(url+"/scripts/setup.ps1", "scripts/setup.ps1")
+	err = cache.Add("scripts/setup.ps1", url+"/scripts/setup.ps1")
 	if err != nil {
 		return err
 	}
-	err = cache.Add(url+"/scripts/specialize.ps1", "scripts/specialize.ps1")
+	err = cache.Add("scripts/specialize.ps1", url+"/scripts/specialize.ps1")
 	return err
 }
 
