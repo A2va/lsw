@@ -150,8 +150,8 @@ func createSoftwareISO(filesInIso []string) error {
 	if shouldGenerate {
 		log.Debug("generate software iso")
 		utils.CreateDir(tmpDir, 0755)
-		defer os.RemoveAll(tmpDir)
 		defer os.Remove(tmpIsoPath)
+		defer os.RemoveAll(tmpDir)
 
 		err = cache.CopyFromCache(tmpDir, filesInIso)
 		if err != nil {

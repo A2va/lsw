@@ -116,9 +116,17 @@ func Add(name string, url string) error {
 		if ext != "" {
 			// Single File Mode
 			log.Debug("download regular file")
-			if err := getter.GetFile(dst, url); err != nil {
+
+			err := getter.GetFile(dst, url, func(c *getter.Client) error {
+				c.DisableSymlinks = true
+				c.Getters = getter.Getters
+				c.Getters["file"] = &getter.FileGetter{Copy: true}
+				return nil
+			})
+			if err != nil {
 				return err
 			}
+
 		} else {
 			// Directory/Archive Mode
 			log.Debug("download archive file")
@@ -254,7 +262,7 @@ func Init() error {
 		return err
 	}
 
-	dirs := []string{"downloads", "iso", "logs", "tmp"}
+	dirs := []string{"store", "logs", "tmp"}
 	for _, d := range dirs {
 		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
 			return err
