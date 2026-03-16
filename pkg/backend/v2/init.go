@@ -78,6 +78,11 @@ func downloadUnattendAssets() error {
 		return err
 	}
 	err = cache.Add("v2/scripts/specialize.ps1", url+"/scripts/specialize.ps1")
+	if err != nil {
+		return err
+	}
+
+	err = cache.Add("v2/scripts/pe.cmd", url+"/scripts/pe.cmd")
 	return err
 }
 

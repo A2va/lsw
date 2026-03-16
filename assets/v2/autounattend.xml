@@ -23,55 +23,6 @@
     </component>
 
     <component
-            name="Microsoft-Windows-PnpCustomizationsWinPE"
-            processorArchitecture="amd64"
-            publicKeyToken="31bf3856ad364e35"
-            language="neutral"
-            versionScope="nonSxS"
-        >
-           <DriverPaths>
-           <!-- Load the virtio drivers related to disks so that windows is able to install properly
-          The full installtion of virtio drivers take place in the setup script. Load both vioscsi and viostor drivers. -->
-               <PathAndCredentials wcm:action="add" wcm:keyValue="1">
-                   <Path>D:\vioscsi\w11\amd64</Path>
-               </PathAndCredentials>
-               <PathAndCredentials wcm:action="add" wcm:keyValue="2">
-                   <Path>E:\vioscsi\w11\amd64</Path>
-               </PathAndCredentials>
-               <PathAndCredentials wcm:action="add" wcm:keyValue="3">
-                   <Path>F:\vioscsi\w11\amd64</Path>
-               </PathAndCredentials>
-               <PathAndCredentials wcm:action="add" wcm:keyValue="4">
-                   <Path>D:\vioscsi\2k25\amd64</Path>
-               </PathAndCredentials>
-               <PathAndCredentials wcm:action="add" wcm:keyValue="5">
-                   <Path>E:\vioscsi\2k25\amd64</Path>
-               </PathAndCredentials>
-               <PathAndCredentials wcm:action="add" wcm:keyValue="6">
-                   <Path>F:\vioscsi\2k25\amd64</Path>
-               </PathAndCredentials>
-               <PathAndCredentials wcm:action="add" wcm:keyValue="7">
-                  <Path>D:\viostor\w11\amd64</Path>
-              </PathAndCredentials>
-              <PathAndCredentials wcm:action="add" wcm:keyValue="8">
-                  <Path>E:\viostor\w11\amd64</Path>
-              </PathAndCredentials>
-              <PathAndCredentials wcm:action="add" wcm:keyValue="9">
-                  <Path>F:\viostor\w11\amd64</Path>
-              </PathAndCredentials>
-              <PathAndCredentials wcm:action="add" wcm:keyValue="10">
-                  <Path>D:\viostor\2k25\amd64</Path>
-              </PathAndCredentials>
-              <PathAndCredentials wcm:action="add" wcm:keyValue="11">
-                  <Path>E:\viostor\2k25\amd64</Path>
-              </PathAndCredentials>
-              <PathAndCredentials wcm:action="add" wcm:keyValue="12">
-                  <Path>F:\viostor\2k25\amd64</Path>
-              </PathAndCredentials>
-           </DriverPaths>
-       </component>
-
-    <component
             name="Microsoft-Windows-Setup"
             processorArchitecture="amd64"
             publicKeyToken="31bf3856ad364e35"
@@ -79,80 +30,18 @@
             versionScope="nonSxS"
         >
         <RunSynchronous>
-            <!-- Bypass TPM check -->
-			<RunSynchronousCommand wcm:action="add">
-				<Order>1</Order>
-				<Path
-                    >reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
-			</RunSynchronousCommand>
-			<RunSynchronousCommand wcm:action="add">
-				<Order>2</Order>
-				<Path
-                    >reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f</Path>
-			</RunSynchronousCommand>
-			<RunSynchronousCommand wcm:action="add">
-				<Order>3</Order>
-				<Path
-                    >reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassRAMCheck /t REG_DWORD /d 1 /f</Path>
-			</RunSynchronousCommand>
+            <RunSynchronousCommand wcm:action="add">
+                <Order>1</Order>
+                <Description>Scan and load VirtIO storage drivers</Description>
+                <Path
+                    >cmd.exe /c "for %d in (A B C D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist %d:\scripts\pe.cmd call %d:\scripts\pe.cmd"</Path>
+            </RunSynchronousCommand>
 		</RunSynchronous>
       <UserData>
         <AcceptEula>true</AcceptEula>
         <FullName>Incus Admin</FullName>
         <Organization>Incus</Organization>
       </UserData>
-      <DiskConfiguration>
-        <Disk wcm:action="add">
-          <DiskID>0</DiskID>
-          <WillWipeDisk>true</WillWipeDisk>
-          <CreatePartitions>
-            <CreatePartition wcm:action="add">
-                <Order>1</Order>
-                <Type>EFI</Type>
-                <Size>100</Size>
-            </CreatePartition>
-            <CreatePartition wcm:action="add">
-                <Order>2</Order>
-                <Type>MSR</Type>
-                <Size>16</Size>
-            </CreatePartition>
-            <CreatePartition wcm:action="add">
-                <Order>3</Order>
-                <Type>Primary</Type>
-                <Extend>true</Extend>
-            </CreatePartition>
-          </CreatePartitions>
-          <ModifyPartitions>
-            <ModifyPartition wcm:action="add">
-                <Order>1</Order>
-                <PartitionID>1</PartitionID>
-                <Format>FAT32</Format>
-                <Label>System</Label>
-            </ModifyPartition>
-            <ModifyPartition wcm:action="add">
-                <Order>2</Order>
-                <PartitionID>3</PartitionID>
-                <Format>NTFS</Format>
-                <Label>Windows</Label>
-            </ModifyPartition>
-          </ModifyPartitions>
-        </Disk>
-        <WillShowUI>OnError</WillShowUI>
-      </DiskConfiguration>
-      <ImageInstall>
-        <OSImage>
-          <InstallFrom>
-            <MetaData wcm:action="add">
-            <Key>/image/index</Key>
-            <Value>1</Value>
-            </MetaData>
-          </InstallFrom>
-          <InstallTo>
-            <DiskID>0</DiskID>
-            <PartitionID>3</PartitionID>
-          </InstallTo>
-        </OSImage>
-      </ImageInstall>
     </component>
   </settings>
 

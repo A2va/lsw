@@ -172,7 +172,7 @@ func copyUnattendAssetsToDir(d string) error {
 		wd, _ := os.Getwd()
 		gorecurcopy.CopyDirectory(path.Join(wd, "assets", "v2"), d)
 	} else {
-		cache.CopyFromCache(d, []string{"v2/scripts/setup.ps1", "v2/scripts/specialize.ps1"})
+		cache.CopyFromCache(d, []string{"v2/scripts/setup.ps1", "v2/scripts/specialize.ps1", "v2/sripts/pe.cmd"})
 	}
 
 	return nil
@@ -409,7 +409,7 @@ func New(arch string, args NewV2Argument) error {
 	log.Info("installing Windows files")
 	fmt.Print("\rStatus: [1/3] Installing Windows Files...           ")
 
-	ev := timeout(q, 7*time.Minute)
+	ev := timeout(q, 8*time.Minute)
 	// Windows have taken more than 8 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
 		log.Warn("VM did not restart within expected time during Windows installation")
