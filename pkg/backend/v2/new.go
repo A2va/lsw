@@ -14,7 +14,6 @@ import (
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
@@ -166,29 +165,12 @@ func getUnattendXmlFile() (string, error) {
 
 // Copy the assets for creating a autounattend iso file to a temp dir
 func copyUnattendAssetsToDir(d string) error {
-	copyToDir := func(srcDir string, dstDir string, file string) {
-		err := utils.CreateDir(path.Join(dstDir, path.Dir(file)), 0755)
-		if err != nil {
-			log.Fatal("error creating directory", "err", err)
-		}
-
-		dstDir = path.Join(dstDir, file)
-		srcDir = path.Join(srcDir, file)
-		err = gorecurcopy.Copy(srcDir, dstDir)
-		if err != nil {
-			log.Fatal("error copying file", "err", err)
-		}
-	}
-
 	log.Debug("temp directory", "dir", d)
 
 	version := config.GetVersion()
 	if version.Version == "dev" {
 		wd, _ := os.Getwd()
-		wd = path.Join("assets")
-		// copyToDirFromCache(wd, d, "autounattend.xml")
-		copyToDir(wd, d, "v2/scripts/setup.ps1")
-		copyToDir(wd, d, "v2/scripts/specialize.ps1")
+		gorecurcopy.CopyDirectory(path.Join(wd, "assets", "v2"), d)
 	} else {
 		cache.CopyFromCache(d, []string{"v2/scripts/setup.ps1", "v2/scripts/specialize.ps1"})
 	}
