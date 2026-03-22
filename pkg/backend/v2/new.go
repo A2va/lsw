@@ -172,7 +172,7 @@ func copyUnattendAssetsToDir(d string) error {
 		wd, _ := os.Getwd()
 		gorecurcopy.CopyDirectory(path.Join(wd, "assets", "v2"), d)
 	} else {
-		cache.CopyFromCache(d, []string{"v2/scripts/setup.ps1", "v2/scripts/specialize.ps1", "v2/sripts/pe.cmd"})
+		cache.CopyFromCache(d, []string{"v2/scripts/oobe.ps1", "v2/scripts/specialize.ps1", "v2/sripts/pe.cmd"})
 	}
 
 	return nil

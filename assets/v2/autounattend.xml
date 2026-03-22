@@ -136,7 +136,7 @@
         <SynchronousCommand wcm:action="add">
             <Order>1</Order>
             <CommandLine
-                    >powershell -NoProfile -ExecutionPolicy Bypass -Command "$drive = (Get-PSDrive | Where-Object { Test-Path \"$($_.Name):\scripts\setup.ps1\" }).Name; if($drive) { powershell -File \"$($drive):\scripts\setup.ps1\" }"</CommandLine>
+                    >powershell -NoProfile -ExecutionPolicy Bypass -Command "$drive = (Get-PSDrive | Where-Object { Test-Path \"$($_.Name):\scripts\oobe.ps1\" }).Name; if($drive) { powershell -File \"$($drive):\scripts\oobe.ps1\" }"</CommandLine>
         </SynchronousCommand>
       </FirstLogonCommands>
     </component>
