@@ -41,6 +41,10 @@
         <AcceptEula>true</AcceptEula>
         <FullName>Incus Admin</FullName>
         <Organization>Incus</Organization>
+        <ProductKey>
+           <Key />
+           <WillShowUI>OnError</WillShowUI>
+        </ProductKey>
       </UserData>
     </component>
   </settings>
