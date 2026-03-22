@@ -8,12 +8,16 @@ import (
 )
 
 func Remove(bottle *config.Bottle) error {
-	// FIXME remove bottle
 	c, err := podmanClient()
 	if err != nil {
 		return err
 	}
 
 	volumeName := fmt.Sprintf("lsw-v1-%s", bottle.Name)
-	return volumes.Remove(c, volumeName, &volumes.RemoveOptions{})
+	err = volumes.Remove(c, volumeName, &volumes.RemoveOptions{})
+	if err != nil {
+		return err
+	}
+	config.Get().RemoveBottle(bottle.Name)
+	return nil
 }

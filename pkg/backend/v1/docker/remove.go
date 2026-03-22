@@ -20,5 +20,6 @@ func Remove(bottle *config.Bottle) error {
 		return err
 	}
 
+	config.Get().RemoveBottle(bottle.Name)
 	return nil
 }
