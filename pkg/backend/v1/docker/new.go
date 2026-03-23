@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/charmbracelet/log"
 	"github.com/moby/moby/api/types/container"
@@ -51,7 +52,7 @@ func CreateOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) 
 		Name: bottle.Name,
 		Config: &container.Config{
 			Image: image,
-			Cmd:   []string{"wine", "cmd"},
+			Cmd:   []string{"wine", backend.GetShell(bottle)},
 			Env: []string{
 				"HOME=/opt/prefix", // Points HOME to the writable volume
 			},

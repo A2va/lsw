@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
@@ -49,7 +50,7 @@ func CreateSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 	spec := specgen.SpecGenerator{
 		ContainerBasicConfig: specgen.ContainerBasicConfig{
 			Name:     bottle.Name,
-			Command:  []string{"wine", "cmd"},
+			Command:  []string{"wine", backend.GetShell(bottle)},
 			Stdin:    &t,
 			Terminal: &t,
 		},

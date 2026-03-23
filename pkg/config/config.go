@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/charmbracelet/log"
+	"github.com/BurntSushi/toml"
 )
 
 var cfg Config
@@ -25,6 +25,7 @@ type Config struct {
 	Bottles        []Bottle `toml:"bottles"`
 	DefaultBackend string   `toml:"default_backend"`
 	DefaultBottle  string   `toml:"default_bottle"`
+	DefaultShell   string   `toml:"default_shell"`
 	// Store the first found provider in case a user install another later
 	DefaultV1Provider string `toml:"default_v1_provider"`
 }
@@ -35,6 +36,7 @@ type Bottle struct {
 	Name string `toml:"name"`
 	// v1 or v2
 	Version    string `toml:"version"`
+	Shell      string `toml:"shell"`
 	V1Provider string `toml:"v1_provider"`
 	// Permanently mounted folder (absolute path)
 	Mounts []string
@@ -81,6 +83,7 @@ func CheckAndLoad() error {
 	cfg.Bottles = []Bottle{}
 	cfg.DefaultBackend = "v2"
 	cfg.DefaultV1Provider = ""
+	cfg.DefaultShell = "powershell"
 
 	if _, err := toml.NewDecoder(f).Decode(&cfg); err != nil {
 		return err
