@@ -14,6 +14,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
@@ -188,12 +189,12 @@ func createAutounattendISO(args NewV2Argument) (string, error) {
 
 	err = copyUnattendAssetsToDir(tmpDir)
 	if err != nil {
-		log.Fatal("error when copying assets to temporary directory", "err", err)
+		utils.Panic("error when copying assets to temporary directory", err)
 	}
 
 	locale, err := detectLocale()
 	if err != nil {
-		log.Fatal("error when calling localectl", "err", err)
+		utils.Panic("error when calling localectl", err)
 	}
 
 	log.Debug("windows layout", "locale", locale)
@@ -266,7 +267,7 @@ func New(arch string, args NewV2Argument) error {
 	log.Info("creating new bottle (v2 backend)", "name", args.Name)
 
 	if arch != "amd64" {
-		log.Fatal("not supported architecture")
+		utils.Panic("not supported architecture")
 	}
 
 	// Create the autounattend iso
@@ -283,7 +284,7 @@ func New(arch string, args NewV2Argument) error {
 
 	cacheDir, err := cache.GetCacheDir()
 	if err != nil {
-		log.Fatal("cannot get cache dir")
+		utils.Panic("cannot get cache dir")
 	}
 
 	virtioIso, err := cache.Get("v2/virtio.iso")
@@ -450,7 +451,7 @@ func New(arch string, args NewV2Argument) error {
 
 	err = removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
 	if err != nil {
-		log.Fatal("failed to remove installation devices", "err", err)
+		utils.Panic("failed to remove installation devices", err)
 	}
 
 	err = updateInstance(c, args.Name, func(inst *api.Instance) error {
@@ -458,7 +459,7 @@ func New(arch string, args NewV2Argument) error {
 		return nil
 	})
 	if err != nil {
-		log.Fatal("failed to update raw.qemu config", "err", err)
+		utils.Panic("failed to update raw.qemu config", err)
 	}
 
 	return nil
@@ -477,7 +478,7 @@ func timeout(q <-chan string, d time.Duration) string {
 func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, devicesToAdd map[string]map[string]string) (*incus.EventListener, *incus.EventTarget) {
 	listener, err := c.GetEvents()
 	if err != nil {
-		log.Fatal("failed to connect to event stream", "err", err)
+		utils.Panic("failed to connect to event stream", err)
 	}
 
 	log.Info("connected to Incus event stream", "vm", vmName)
@@ -525,7 +526,7 @@ func eventHandler(c incus.InstanceServer, vmName string, q chan<- string, device
 	})
 
 	if err != nil {
-		log.Fatal("failed to add event handler", "err", err)
+		utils.Panic("failed to add event handler", err)
 	}
 
 	return listener, evt

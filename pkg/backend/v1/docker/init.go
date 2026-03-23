@@ -13,6 +13,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 	"github.com/containerd/errdefs"
 	"github.com/moby/moby/client"
@@ -178,7 +179,7 @@ func buildImage(c *client.Client) error {
 
 	dockerfilePath, err := getDockerfile()
 	if err != nil {
-		log.Fatal(err)
+		utils.Panic("", err)
 	}
 
 	buildContext, err := createBuildContext(dockerfilePath)
@@ -208,19 +209,19 @@ func Init() {
 
 	c, err := client.New(client.FromEnv)
 	if err != nil {
-		log.Fatal(err)
+		utils.Panic("", err)
 	}
 	defer c.Close()
 
 	if config.GetVersion().Version != "dev" {
 		err = pruneOldImages(c)
 		if err != nil {
-			log.Fatal(err)
+			utils.Panic("", err)
 		}
 	}
 
 	err = buildImage(c)
 	if err != nil {
-		log.Fatal(err)
+		utils.Panic("", err)
 	}
 }

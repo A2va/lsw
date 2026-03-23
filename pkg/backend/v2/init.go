@@ -113,7 +113,7 @@ func createSoftwareISO(filesInIso []string) error {
 
 	cacheDir, err := cache.GetCacheDir()
 	if err != nil {
-		log.Fatal("cannot get cache directory")
+		utils.Panic("cannot get cache directory", err)
 	}
 
 	stateHash := computeStateHash(cachedFiles)
@@ -178,22 +178,22 @@ func createSoftwareISO(filesInIso []string) error {
 func Init() {
 	err := downloadOpenSSH()
 	if err != nil {
-		log.Fatal("cannot download OpenSSH")
+		utils.Panic("cannot download OpenSSH", err)
 	}
 
 	err = downloadWinFsp()
 	if err != nil {
-		log.Fatal("cannot download WinFsp")
+		utils.Panic("cannot download WinFsp", err)
 	}
 
 	err = downloadVirtio()
 	if err != nil {
-		log.Fatal("cannot download Virtio")
+		utils.Panic("cannot download Virtio", err)
 	}
 
 	err = downloadUnattendAssets()
 	if err != nil {
-		log.Fatal("cannot download Unattend assets")
+		utils.Panic("cannot download Unattend assets", err)
 	}
 
 	_, err = downloadWindowsIso()
@@ -203,17 +203,17 @@ func Init() {
 
 	err = downloadVsRedistribuable()
 	if err != nil {
-		log.Fatal("cannot download Visual C++ Redistribuable")
+		utils.Panic("cannot download Visual C++ Redistribuable", err)
 	}
 
 	err = downloadIncusAgent()
 	if err != nil {
-		log.Fatal("cannot download incus agent: %w", err)
+		utils.Panic("cannot download incus agent", err)
 	}
 
 	sotfwareToPack := []string{"v2/winfsp.msi", "v2/vc_redist.exe", "v2/OpenSSH", "v2/incus-agent.exe"}
 	err = createSoftwareISO(sotfwareToPack)
 	if err != nil {
-		log.Fatal("cannot create software ISO: %w", err)
+		utils.Panic("cannot create software ISO", err)
 	}
 }

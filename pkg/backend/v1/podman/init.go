@@ -10,6 +10,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 	buildahDefine "github.com/containers/buildah/define"
 
@@ -151,7 +152,7 @@ func buildImage(c context.Context) error {
 
 	dockerfilePath, err := getDockerfile()
 	if err != nil {
-		log.Fatal(err)
+		utils.Panic("", err)
 	}
 
 	contextDir := path.Dir(dockerfilePath)
@@ -175,7 +176,7 @@ func buildImage(c context.Context) error {
 
 	_, err = images.Build(c, []string{dockerfileName}, buildOptions)
 	if err != nil {
-		log.Fatalf("err: %w", err)
+		utils.Panic("", err)
 	}
 
 	return nil
@@ -186,14 +187,14 @@ func Init() {
 
 	c, err := podmanClient()
 	if err != nil {
-		log.Fatal(err)
+		utils.Panic("", err)
 	}
 
 	// Prune old image only in dev version, to rely on the podman cache
 	if config.GetVersion().Version != "dev" {
 		err = pruneOldImages(c)
 		if err != nil {
-			log.Fatal(err)
+			utils.Panic("", err)
 		}
 	}
 

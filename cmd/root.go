@@ -9,6 +9,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	log "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -17,7 +18,7 @@ import (
 func initLog(debug bool) {
 	logdir, err := cache.GetCacheDir()
 	if err != nil {
-		log.Fatalf("cannot get cache directory: %v", err)
+		utils.Panic("cannot get cache directory", err)
 	}
 
 	logPath := filepath.Join(logdir, "logs", "lsw.log")
@@ -91,14 +92,14 @@ Features:
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			err := cache.Init()
 			if err != nil {
-				log.Fatal("error creating cache directories", "err", err)
+				utils.Panic("error creating cache directories", err)
 			}
 			initLog(root.debug)
 
 			// check and load config after handlers are configured
 			err = config.CheckAndLoad()
 			if err != nil {
-				log.Fatal("error loading config file", "err", err)
+				utils.Panic("error loading config file", err)
 			}
 
 			config.SetVersion(cmd.Version, root.debug)

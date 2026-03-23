@@ -11,6 +11,7 @@ import (
 	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 	log "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +28,7 @@ func newName(names []string) string {
 		if len(s) >= 2 {
 			n, err := strconv.ParseInt(s[1], 10, 0)
 			if err != nil {
-				log.Fatal(err)
+				utils.Panic("failed to parse int", err)
 			}
 			return int(n)
 		} else {
