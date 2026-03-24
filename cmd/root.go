@@ -5,15 +5,47 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
+	log "charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	log "charm.land/log/v2"
 	"github.com/spf13/cobra"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+var ansiRegex = regexp.MustCompile("[\u001b\u009b][\\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]")
+
+type splitWriter struct {
+	tty  *os.File
+	file io.Writer
+}
+
+// Fd exposes the terminal's file descriptor. This allows charmbracelet/log
+// to correctly detect terminal support and enable colors natively.
+func (w *splitWriter) Fd() uintptr {
+	return w.tty.Fd()
+}
+
+func (w *splitWriter) Write(p []byte) (n int, err error) {
+	n, err = w.tty.Write(p)
+	if err != nil {
+		return n, err
+	}
+
+	// Strip the ANSI color codes
+	cleanBytes := ansiRegex.ReplaceAll(p, []byte(""))
+
+	// Write the cleaned bytes to the log file
+	_, err = w.file.Write(cleanBytes)
+	if err != nil {
+		return n, err
+	}
+
+	return len(p), nil
+}
 
 func initLog(debug bool) {
 	logdir, err := cache.GetCacheDir()
@@ -33,7 +65,12 @@ func initLog(debug bool) {
 
 	if debug {
 		log.SetLevel(log.DebugLevel)
-		log.SetOutput(io.MultiWriter(os.Stderr, fileLogger))
+		log.SetOutput(&splitWriter{
+			tty:  os.Stderr,
+			file: fileLogger,
+		})
+		// log.SetColorProfile()
+		// log.SetOutput(os.Stderr)
 	} else {
 		log.SetLevel(log.InfoLevel)
 		log.SetOutput(fileLogger)
