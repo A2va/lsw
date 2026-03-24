@@ -7,7 +7,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 )
 
 func Shell(bottle *config.Bottle) error {

@@ -8,7 +8,7 @@ import (
 
 	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/client"

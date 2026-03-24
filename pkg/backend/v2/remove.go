@@ -2,7 +2,7 @@ package v2
 
 import (
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 )
 
 func Remove(bottle *config.Bottle) error {

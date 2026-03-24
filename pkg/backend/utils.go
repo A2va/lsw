@@ -3,7 +3,7 @@ package backend
 import (
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 )
 
 func GetBottle(name string) (*config.Bottle, bool) {

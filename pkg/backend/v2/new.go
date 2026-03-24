@@ -15,7 +15,7 @@ import (
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 

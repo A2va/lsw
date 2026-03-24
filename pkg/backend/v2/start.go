@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/charmbracelet/log"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 )

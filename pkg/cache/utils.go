@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/utils"
-	"github.com/charmbracelet/log"
 	"github.com/plus3it/gorecurcopy"
 )
 

@@ -12,7 +12,7 @@ import (
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	buildahDefine "github.com/containers/buildah/define"
 
 	"github.com/containers/podman/v6/pkg/bindings/containers"

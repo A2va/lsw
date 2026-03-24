@@ -4,7 +4,7 @@ import (
 	"github.com/A2va/lsw/pkg/backend/v1/docker"
 	"github.com/A2va/lsw/pkg/backend/v1/podman"
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 )
 
 func New(name string, provider string) error {

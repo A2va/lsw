@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/A2va/lsw/pkg/config"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
 )
