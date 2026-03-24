@@ -16,7 +16,9 @@ import (
 	"github.com/A2va/lsw/pkg/utils"
 	"github.com/charmbracelet/log"
 	"github.com/containerd/errdefs"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/moby/moby/client"
+	"github.com/moby/term"
 )
 
 func getDockerfile() (string, error) {
@@ -194,9 +196,13 @@ func buildImage(c *client.Client) error {
 	}
 	defer res.Body.Close()
 
-	_, err = io.Copy(io.Discard, res.Body)
-	if version.Version == "dev" {
-		_, err = io.Copy(os.Stdout, res.Body)
+	// Display build log if in dev and debug
+	if version.Version == "dev" && config.GetVersion().DebugFlag {
+		termFd, isTerm := term.GetFdInfo(os.Stdout)
+		err = jsonmessage.DisplayJSONMessagesStream(res.Body, os.Stdout, termFd, isTerm, nil)
+		if err != nil {
+			return err
+		}
 	} else {
 		_, err = io.Copy(io.Discard, res.Body)
 	}

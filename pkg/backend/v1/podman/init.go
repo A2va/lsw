@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -155,6 +156,15 @@ func buildImage(c context.Context) error {
 		utils.Panic("", err)
 	}
 
+	var outWriter io.Writer = io.Discard
+	var errWriter io.Writer = io.Discard
+
+	// Display build log if in dev and debug
+	if version.Version == "dev" && config.GetVersion().DebugFlag {
+		outWriter = os.Stdout
+		errWriter = os.Stderr
+	}
+
 	contextDir := path.Dir(dockerfilePath)
 	dockerfileName := path.Base(dockerfilePath)
 
@@ -170,6 +180,9 @@ func buildImage(c context.Context) error {
 			// Cache only works if the ouput format are defined
 			OutputFormat: buildahDefine.OCIv1ImageManifest,
 			// OutputFormat: buildahDefine.Dockerv2ImageManifest,
+			Out:          outWriter,
+			Err:          errWriter,
+			ReportWriter: outWriter,
 		},
 	}
 	log.Debug("build options", "opts", buildOptions)
