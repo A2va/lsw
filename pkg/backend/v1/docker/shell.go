@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/A2va/lsw/pkg/config"
 	"charm.land/log/v2"
+	"github.com/A2va/lsw/pkg/config"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
 )
@@ -59,7 +59,7 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
-	createOpts, err := CreateOptions(*bottle)
+	createOpts, err := createOptions(*bottle)
 	if err != nil {
 		return err
 	}

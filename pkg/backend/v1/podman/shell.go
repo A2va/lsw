@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/A2va/lsw/pkg/config"
 	"charm.land/log/v2"
+	"github.com/A2va/lsw/pkg/config"
 	"github.com/containers/podman/v6/pkg/api/handlers"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/docker/docker/api/types/container"
@@ -57,7 +57,7 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
-	spec, err := CreateSpec(*bottle)
+	spec, err := createSpec(*bottle)
 	if err != nil {
 		return err
 	}
