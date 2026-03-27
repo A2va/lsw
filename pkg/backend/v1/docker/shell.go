@@ -64,18 +64,20 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
+	containerName := createOpts.Name
+
 	_, err = c.ContainerCreate(context.Background(), createOpts)
 	if err != nil {
 		return err
 	}
 
-	res, err := attachMethod(c, bottle.Name)
+	res, err := attachMethod(c, containerName)
 	if err != nil {
 		return err
 	}
 	defer res.Close()
 
-	_, err = c.ContainerStart(context.Background(), bottle.Name, client.ContainerStartOptions{})
+	_, err = c.ContainerStart(context.Background(), containerName, client.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -106,12 +108,12 @@ func Shell(bottle *config.Bottle) error {
 
 	<-outputDone
 
-	_, err = c.ContainerStop(context.Background(), bottle.Name, client.ContainerStopOptions{})
+	_, err = c.ContainerStop(context.Background(), containerName, client.ContainerStopOptions{})
 	if err != nil {
 		return err
 	}
 
-	_, err = c.ContainerRemove(context.Background(), bottle.Name, client.ContainerRemoveOptions{})
+	_, err = c.ContainerRemove(context.Background(), containerName, client.ContainerRemoveOptions{})
 	if err != nil {
 		return err
 	}

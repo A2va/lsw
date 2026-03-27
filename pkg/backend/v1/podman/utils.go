@@ -2,15 +2,19 @@ package podman
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/bindings"
+	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -24,6 +28,12 @@ func podmanClient() (context.Context, error) {
 	}
 	return c, nil
 
+}
+
+func hash() string {
+	t := time.Now().String()
+	bs := sha1.Sum([]byte(t))
+	return hex.EncodeToString(bs[:])[:7]
 }
 
 func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
@@ -59,10 +69,13 @@ func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 		mounts = append(mounts, specs.Mount{Type: "bind", Source: mountPath, Destination: mountPath, Options: []string{"rbind", "z"}})
 	}
 
+	name := fmt.Sprintf("lsw-%s-%s", bottle.Name, hash())
+	log.Debug(name)
+
 	t := true
 	spec := specgen.SpecGenerator{
 		ContainerBasicConfig: specgen.ContainerBasicConfig{
-			Name:     bottle.Name,
+			Name:     name,
 			Command:  []string{"wine", backend.GetShell(bottle)},
 			Stdin:    &t,
 			Terminal: &t,
@@ -81,4 +94,32 @@ func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 	}
 
 	return spec, nil
+}
+
+func GetStatus(name string) (config.BottleStatus, error) {
+	a := true
+
+	c, err := podmanClient()
+	if err != nil {
+		return config.BottleStatus{}, err
+	}
+
+	f := map[string][]string{
+		"ancestor": []string{"lsw-v1:.*"},                  // Matches "lsw-v1:<anything>"
+		"name":     []string{fmt.Sprintf("^lsw-%s", name)}, // Matches names starting with "lsw-name"
+	}
+
+	containerss, err := containers.List(c, &containers.ListOptions{
+		All:     &a,
+		Filters: f,
+	})
+	if err != nil {
+		return config.BottleStatus{}, err
+	}
+
+	for _, container := range containerss {
+		log.Debug(container)
+	}
+
+	return config.BottleStatus{}, nil
 }

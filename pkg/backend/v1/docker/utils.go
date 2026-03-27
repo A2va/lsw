@@ -1,9 +1,12 @@
 package docker
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/backend"
@@ -12,6 +15,12 @@ import (
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/client"
 )
+
+func hash() string {
+	t := time.Now().String()
+	bs := sha1.Sum([]byte(t))
+	return hex.EncodeToString(bs[:])[:7]
+}
 
 func createOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) {
 	cwd, err := os.Getwd()
@@ -47,8 +56,9 @@ func createOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) 
 	userStr := fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 	log.Debug("user string", "userStr", userStr)
 
+	name := fmt.Sprintf("lsw-%s-%s", bottle.Name, hash())
 	createOpts := client.ContainerCreateOptions{
-		Name: bottle.Name,
+		Name: name,
 		Config: &container.Config{
 			Image: image,
 			Cmd:   []string{"wine", backend.GetShell(bottle)},

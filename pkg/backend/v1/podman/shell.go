@@ -62,6 +62,8 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
+	containerName := spec.Name
+
 	_, err = containers.CreateWithSpec(c, &spec, &containers.CreateOptions{})
 	if err != nil {
 		return err
@@ -72,20 +74,20 @@ func Shell(bottle *config.Bottle) error {
 
 	// Hook up the streams in the background
 	go func() {
-		attachErr <- attachMethod(c, bottle.Name, attachReady)
+		attachErr <- attachMethod(c, containerName, attachReady)
 	}()
 
 	// Wait until Podman signals that it is actively listening
 	<-attachReady
 
-	err = containers.Start(c, bottle.Name, &containers.StartOptions{})
+	err = containers.Start(c, containerName, &containers.StartOptions{})
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		defer containers.Stop(c, bottle.Name, &containers.StopOptions{})
-		defer containers.Remove(c, bottle.Name, &containers.RemoveOptions{})
+		containers.Stop(c, containerName, &containers.StopOptions{})
+		containers.Remove(c, containerName, &containers.RemoveOptions{})
 	}()
 
 	return <-attachErr
