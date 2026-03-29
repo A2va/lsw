@@ -51,7 +51,6 @@ func execMethod(c *client.Client, nameOrID string) (client.HijackedResponse, err
 }
 
 func Shell(bottle *config.Bottle) error {
-	// FIXME Cannot create two shell session of the same bottle
 	log.Info("shelling into container (docker)", "name", bottle.Name)
 
 	c, err := client.New(client.FromEnv)

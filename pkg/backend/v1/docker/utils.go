@@ -1,11 +1,13 @@
 package docker
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"charm.land/log/v2"
@@ -80,4 +82,44 @@ func createOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) 
 
 	log.Debug("docker provider", "createOptions", createOpts)
 	return createOpts, nil
+}
+
+func GetStatus(name string) ([]config.BottleStatus, error) {
+	c, err := client.New(client.FromEnv)
+	if err != nil {
+		return []config.BottleStatus{}, err
+	}
+
+	f := make(client.Filters).Add("reference", "lsw-v1:*").Add("name", fmt.Sprintf("^lsw-%s", name))
+	items, err := c.ContainerList(context.Background(), client.ContainerListOptions{
+		Filters: f,
+	})
+	if err != nil {
+		return []config.BottleStatus{}, err
+	}
+
+	containers := items.Items
+	if len(containers) == 0 {
+		notRunning := config.BottleStatus{
+			Name:    name,
+			Running: false,
+		}
+		return []config.BottleStatus{notRunning}, nil
+	}
+
+	var status []config.BottleStatus
+	for _, container := range containers {
+		inspect, err := c.ContainerInspect(context.Background(), container.ID, client.ContainerInspectOptions{})
+		if err != nil {
+			return []config.BottleStatus{}, err
+		}
+
+		status = append(status, config.BottleStatus{
+			Name:        strings.TrimPrefix(inspect.Container.Name, "lsw-"),
+			Running:     true,
+			EnteredFrom: inspect.Container.Config.WorkingDir,
+		})
+	}
+
+	return []config.BottleStatus{}, nil
 }

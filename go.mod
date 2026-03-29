@@ -5,6 +5,7 @@ go 1.25.8
 require (
 	charm.land/log/v2 v2.0.0
 	github.com/BurntSushi/toml v1.6.0
+	github.com/charmbracelet/colorprofile v0.4.2
 	github.com/containerd/errdefs v1.0.0
 	github.com/containers/buildah v1.42.0
 	github.com/containers/podman/v6 v6.0.0-20260123121833-1af4caf88892
@@ -17,6 +18,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/plus3it/gorecurcopy v0.0.1
 	github.com/spf13/cobra v1.10.2
+	go.podman.io/common v0.66.2-0.20251209230740-724707234895
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -61,7 +63,6 @@ require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20251205161215-1948445e3318 // indirect
 	github.com/charmbracelet/x/ansi v0.11.6 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
@@ -174,7 +175,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.39.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
-	go.podman.io/common v0.66.2-0.20251209230740-724707234895 // indirect
 	go.podman.io/image/v5 v5.38.1-0.20251209230740-724707234895 // indirect
 	go.podman.io/storage v1.61.1-0.20251209230740-724707234895 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect

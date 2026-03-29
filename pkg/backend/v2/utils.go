@@ -16,10 +16,30 @@ import (
 	"time"
 
 	"charm.land/log/v2"
+	"github.com/A2va/lsw/pkg/config"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 	"github.com/lxc/incus/shared/util"
 )
+
+func GetStatus(bottle config.Bottle) ([]config.BottleStatus, error) {
+	c, err := incusClient()
+	if err != nil {
+		return []config.BottleStatus{}, err
+	}
+
+	inst, _, err := c.GetInstance(bottle.Name)
+	if err != nil {
+		return []config.BottleStatus{}, err
+	}
+
+	isRunning := inst.Status == "running"
+	status := config.BottleStatus{Name: bottle.Name, Running: isRunning}
+	if isRunning == true {
+		status.EnteredFrom = inst.Devices["cwd"]["path"]
+	}
+	return []config.BottleStatus{status}, nil
+}
 
 func generateISO(sourceDir string, output string, label string) error {
 	if util.PathExists(path.Join(sourceDir, output)) {

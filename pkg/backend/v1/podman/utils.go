@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"charm.land/log/v2"
@@ -95,12 +96,12 @@ func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 	return spec, nil
 }
 
-func GetStatus(name string) (config.BottleStatus, error) {
+func GetStatus(name string) ([]config.BottleStatus, error) {
 	a := true
 
 	c, err := podmanClient()
 	if err != nil {
-		return config.BottleStatus{}, err
+		return []config.BottleStatus{}, err
 	}
 
 	f := map[string][]string{
@@ -113,12 +114,30 @@ func GetStatus(name string) (config.BottleStatus, error) {
 		Filters: f,
 	})
 	if err != nil {
-		return config.BottleStatus{}, err
+		return []config.BottleStatus{}, err
 	}
 
+	if len(containerss) == 0 {
+		notRunning := config.BottleStatus{
+			Name:    name,
+			Running: false,
+		}
+		return []config.BottleStatus{notRunning}, nil
+	}
+
+	var status []config.BottleStatus
 	for _, container := range containerss {
-		log.Debug(container)
+		inspect, err := containers.Inspect(c, container.ID, &containers.InspectOptions{})
+		if err != nil {
+			return []config.BottleStatus{}, err
+		}
+
+		status = append(status, config.BottleStatus{
+			Name:        strings.TrimPrefix(inspect.Name, "lsw-"),
+			Running:     true,
+			EnteredFrom: inspect.Config.WorkingDir,
+		})
 	}
 
-	return config.BottleStatus{}, nil
+	return status, nil
 }

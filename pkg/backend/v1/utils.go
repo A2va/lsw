@@ -1,8 +1,11 @@
 package v1
 
 import (
+	"fmt"
 	"os/exec"
 
+	"github.com/A2va/lsw/pkg/backend/v1/docker"
+	"github.com/A2va/lsw/pkg/backend/v1/podman"
 	"github.com/A2va/lsw/pkg/config"
 )
 
@@ -33,4 +36,14 @@ func getProvider(bottle config.Bottle) string {
 		return provider
 	}
 	return cfg.DefaultV1Provider
+}
+
+func GetStatus(bottle config.Bottle) ([]config.BottleStatus, error) {
+	if bottle.V1Provider == "podman" {
+		return podman.GetStatus(bottle.Name)
+	} else if bottle.V1Provider == "docker" {
+		return docker.GetStatus(bottle.Name)
+	}
+
+	return []config.BottleStatus{}, fmt.Errorf("not a valid v1 provider")
 }
