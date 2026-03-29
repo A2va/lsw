@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/bindings"
@@ -76,7 +75,7 @@ func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 	spec := specgen.SpecGenerator{
 		ContainerBasicConfig: specgen.ContainerBasicConfig{
 			Name:     name,
-			Command:  []string{"wine", backend.GetShell(bottle)},
+			Command:  []string{"wine", bottle.GetShell()},
 			Stdin:    &t,
 			Terminal: &t,
 		},

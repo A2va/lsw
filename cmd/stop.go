@@ -3,16 +3,16 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/A2va/lsw/pkg/backend"
 	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
+	"github.com/A2va/lsw/pkg/config"
 	"github.com/spf13/cobra"
 )
 
 func stopCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "stop [bottle-name]",
-		Short:         "Stop a running Windows bottle",
+		Use:   "stop [bottle-name]",
+		Short: "Stop a running Windows bottle",
 		Long: `Gracefully shut down a running Windows bottle.
 
 Can specify the bottle name, or LSW will use the default configured bottle.
@@ -27,7 +27,7 @@ Example:
 			if len(args) >= 1 {
 				bottleName = args[0]
 			}
-			bottle, found := backend.GetBottle(bottleName)
+			bottle, found := config.GetBottle(bottleName)
 
 			if !found {
 				return fmt.Errorf("not found the bottle")

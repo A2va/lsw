@@ -1,17 +1,16 @@
-package backend
+package config
 
 import (
-	"github.com/A2va/lsw/pkg/config"
-	"github.com/A2va/lsw/pkg/utils"
 	"charm.land/log/v2"
+	"github.com/A2va/lsw/pkg/utils"
 )
 
-func GetBottle(name string) (*config.Bottle, bool) {
+func GetBottle(name string) (*Bottle, bool) {
 	if name == "" {
 		return nil, false
 	}
 
-	cfg := config.Get()
+	cfg := Get()
 
 	var bottleName string
 	if len(name) >= 1 {
@@ -33,15 +32,15 @@ func GetBottle(name string) (*config.Bottle, bool) {
 	return nil, false
 }
 
-func GetShell(bottle config.Bottle) string {
-	shell := bottle.Shell
+func (b *Bottle) GetShell() string {
+	shell := b.Shell
 	if shell == "" {
-		shell = config.Get().DefaultShell
+		shell = Get().DefaultShell
 	}
 
 	// Define mappings for version-specific overrides
 	var overrides map[string]string
-	switch bottle.Version {
+	switch b.Version {
 	case "v1":
 		overrides = map[string]string{"powershell": "pwsh", "pwsh": "pwsh", "cmd": "cmd"}
 	case "v2":

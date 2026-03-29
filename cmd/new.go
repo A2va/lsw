@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	log "charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/backend"
 	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
@@ -77,7 +76,7 @@ func newV1Cmd() *cobra.Command {
 			cfg := config.Get()
 
 			name, _ := cmd.Flags().GetString("name")
-			if _, found := backend.GetBottle(name); found {
+			if _, found := config.GetBottle(name); found {
 				return fmt.Errorf("bottle with name '%s' already exists", name)
 			}
 			if name == "" {
@@ -110,7 +109,7 @@ func newV2Cmd() *cobra.Command {
 			cfg := config.Get()
 
 			name, _ := cmd.Flags().GetString("name")
-			if _, found := backend.GetBottle(name); found {
+			if _, found := config.GetBottle(name); found {
 				return fmt.Errorf("bottle with name '%s' already exists", name)
 			}
 			if name == "" {

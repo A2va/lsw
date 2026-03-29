@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
 	"charm.land/log/v2"
 )
@@ -61,7 +60,7 @@ func Shell(bottle *config.Bottle) error {
 	// ssh -t user@xxx.xxx.xxx.xxx "cd /d C:\directory_wanted & cmd /k"
 	// ssh -t user@xxx.xxx.xxx.xxx "cd C:\directory_wanted ; powershell -NoExit"
 
-	shell := backend.GetShell(*bottle)
+	shell := bottle.GetShell()
 	var remoteCmd string
 	if shell == "powershell" {
 		remoteCmd = fmt.Sprintf("cd %s: ; powershell -NoExit", mountPoint.volumeLetter)

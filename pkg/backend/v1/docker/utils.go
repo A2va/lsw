@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/backend"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/mount"
@@ -61,7 +60,7 @@ func createOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) 
 		Name: name,
 		Config: &container.Config{
 			Image: image,
-			Cmd:   []string{"wine", backend.GetShell(bottle)},
+			Cmd:   []string{"wine", bottle.GetShell()},
 			Env: []string{
 				"HOME=/opt/prefix", // Points HOME to the writable volume
 			},
