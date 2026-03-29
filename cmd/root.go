@@ -12,6 +12,7 @@ import (
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/spf13/cobra"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -69,11 +70,10 @@ func initLog(debug bool) {
 			tty:  os.Stderr,
 			file: fileLogger,
 		})
-		// log.SetColorProfile()
-		// log.SetOutput(os.Stderr)
 	} else {
 		log.SetLevel(log.InfoLevel)
 		log.SetOutput(fileLogger)
+		log.SetColorProfile(colorprofile.NoTTY)
 	}
 
 	log.SetReportTimestamp(true)
@@ -168,6 +168,7 @@ Features:
 	cmd.AddCommand(stopCmd())
 	cmd.AddCommand(removeCmd())
 	cmd.AddCommand(mountCmd())
+	cmd.AddCommand(psCmd())
 
 	root.cmd = cmd
 	return root
