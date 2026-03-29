@@ -2,7 +2,6 @@ package config
 
 import (
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/utils"
 )
 
 func GetBottle(name string) (*Bottle, bool) {
@@ -52,6 +51,6 @@ func (b *Bottle) GetShell() string {
 		return mapped
 	}
 
-	utils.Panic("shell is not support")
-	return shell
+	log.Warn("falling back to cmd prompt")
+	return "cmd"
 }
