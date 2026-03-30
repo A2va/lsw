@@ -38,11 +38,11 @@ func getProvider(bottle config.Bottle) string {
 	return cfg.DefaultV1Provider
 }
 
-func GetStatus(bottle config.Bottle) ([]config.BottleStatus, error) {
+func GetStatus(bottle config.Bottle, all bool) ([]config.BottleStatus, error) {
 	if bottle.V1Provider == "podman" {
-		return podman.GetStatus(bottle.Name)
+		return podman.GetStatus(bottle.Name, all)
 	} else if bottle.V1Provider == "docker" {
-		return docker.GetStatus(bottle.Name)
+		return docker.GetStatus(bottle.Name, all)
 	}
 
 	return []config.BottleStatus{}, fmt.Errorf("not a valid v1 provider")

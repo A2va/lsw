@@ -96,7 +96,7 @@ func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 	return spec, nil
 }
 
-func GetStatus(name string) ([]config.BottleStatus, error) {
+func GetStatus(name string, all bool) ([]config.BottleStatus, error) {
 	a := true
 
 	c, err := podmanClient()
@@ -117,7 +117,7 @@ func GetStatus(name string) ([]config.BottleStatus, error) {
 		return []config.BottleStatus{}, err
 	}
 
-	if len(containerss) == 0 {
+	if len(containerss) == 0 && all {
 		notRunning := config.BottleStatus{
 			Name:    name,
 			Running: false,

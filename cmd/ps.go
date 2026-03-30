@@ -12,9 +12,14 @@ func psCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			backend.Ps()
+			noHeaders, _ := cmd.Flags().GetBool("noheading")
+			all, _ := cmd.Flags().GetBool("all")
+			backend.Ps(noHeaders, all)
 			return nil
 		},
 	}
+
+	cmd.PersistentFlags().Bool("noheading", false, "Do not print headers")
+	cmd.PersistentFlags().Bool("all", false, "Show all the bottles, default is only running bottles")
 	return cmd
 }

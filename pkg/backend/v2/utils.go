@@ -22,7 +22,7 @@ import (
 	"github.com/lxc/incus/shared/util"
 )
 
-func GetStatus(bottle config.Bottle) ([]config.BottleStatus, error) {
+func GetStatus(bottle config.Bottle, all bool) ([]config.BottleStatus, error) {
 	c, err := incusClient()
 	if err != nil {
 		return []config.BottleStatus{}, err
@@ -35,10 +35,18 @@ func GetStatus(bottle config.Bottle) ([]config.BottleStatus, error) {
 
 	isRunning := inst.Status == "running"
 	status := config.BottleStatus{Name: bottle.Name, Running: isRunning}
-	if isRunning == true {
-		status.EnteredFrom = inst.Devices["cwd"]["path"]
+
+	if !isRunning && all {
+		return []config.BottleStatus{status}, nil
+	} else if isRunning {
+		cwdDevice, exist := inst.Devices["cwd"]
+		if isRunning && exist {
+			status.EnteredFrom = cwdDevice["path"]
+		}
+		return []config.BottleStatus{status}, nil
 	}
-	return []config.BottleStatus{status}, nil
+
+	return []config.BottleStatus{}, nil
 }
 
 func generateISO(sourceDir string, output string, label string) error {

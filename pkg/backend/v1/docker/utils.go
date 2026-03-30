@@ -84,7 +84,7 @@ func createOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) 
 	return createOpts, nil
 }
 
-func GetStatus(name string) ([]config.BottleStatus, error) {
+func GetStatus(name string, all bool) ([]config.BottleStatus, error) {
 	c, err := client.New(client.FromEnv)
 	if err != nil {
 		return []config.BottleStatus{}, err
@@ -99,7 +99,7 @@ func GetStatus(name string) ([]config.BottleStatus, error) {
 	}
 
 	containers := items.Items
-	if len(containers) == 0 {
+	if len(containers) == 0 && all {
 		notRunning := config.BottleStatus{
 			Name:    name,
 			Running: false,

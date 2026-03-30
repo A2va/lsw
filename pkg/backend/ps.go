@@ -10,7 +10,7 @@ import (
 	"go.podman.io/common/pkg/report"
 )
 
-func Ps() error {
+func Ps(noHeading bool, all bool) error {
 	var bottleStatus []config.BottleStatus
 
 	for _, bottle := range config.Get().Bottles {
@@ -18,12 +18,12 @@ func Ps() error {
 		var err error
 
 		if bottle.Version == "v1" {
-			st, err = v1.GetStatus(bottle)
+			st, err = v1.GetStatus(bottle, all)
 			if err != nil {
 				return err
 			}
 		} else if bottle.Version == "v2" {
-			st, err = v2.GetStatus(bottle)
+			st, err = v2.GetStatus(bottle, all)
 			if err != nil {
 				return err
 			}
@@ -43,8 +43,10 @@ func Ps() error {
 		return err
 	}
 
-	if err := rpt.Execute(headers); err != nil {
-		return fmt.Errorf("failed to write report column headers: %w", err)
+	if (rpt.RenderHeaders) && !noHeading {
+		if err := rpt.Execute(headers); err != nil {
+			return fmt.Errorf("failed to write report column headers: %w", err)
+		}
 	}
 
 	return rpt.Execute(bottleStatus)
