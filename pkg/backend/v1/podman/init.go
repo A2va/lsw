@@ -9,10 +9,10 @@ import (
 	"path"
 	"strings"
 
+	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"charm.land/log/v2"
 	buildahDefine "github.com/containers/buildah/define"
 
 	"github.com/containers/podman/v6/pkg/bindings/containers"
@@ -114,7 +114,8 @@ func pruneOldImages(c context.Context) error {
 
 	log.Debug("remove old images", "id", imagesToRemove)
 	t := true
-	_, errs := images.Remove(c, imagesToRemove, &images.RemoveOptions{Force: &t})
+	fa := false
+	_, errs := images.Remove(c, imagesToRemove, &images.RemoveOptions{Force: &t, NoPrune: &fa})
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
@@ -147,7 +148,6 @@ func buildImage(c context.Context) error {
 	// Use caching when developing the project to have a better iteration
 	if version.Version == "dev" {
 		noCache = false
-		remove = false
 		layers = true
 	}
 
@@ -170,9 +170,10 @@ func buildImage(c context.Context) error {
 
 	buildOptions := types.BuildOptions{
 		BuildOptions: buildahDefine.BuildOptions{
+
 			ContextDirectory:        contextDir,
 			NoCache:                 noCache,
-			RemoveIntermediateCtrs:  remove,
+			RemoveIntermediateCtrs:  true,
 			ForceRmIntermediateCtrs: remove,
 			Layers:                  layers,
 			Output:                  targetTag,

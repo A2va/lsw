@@ -167,16 +167,20 @@ func buildImage(c *client.Client) error {
 
 	noCache := true
 	remove := true
+	layers := false
 	// Use caching when developing the project to have a better iteration
 	if version.Version == "dev" {
 		noCache = false
 		remove = false
+		layers = true
 	}
 
 	buildOptions := client.ImageBuildOptions{
-		NoCache: noCache,
-		Remove:  remove,
-		Tags:    []string{targetTag},
+		NoCache:     noCache,
+		Remove:      remove,
+		ForceRemove: remove,
+		Squash:      layers,
+		Tags:        []string{targetTag},
 	}
 
 	dockerfilePath, err := getDockerfile()
