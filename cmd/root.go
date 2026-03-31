@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/theckman/yacspin"
+
 	log "charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
@@ -98,6 +100,8 @@ func (cmd *rootCmd) Execute(args []string) {
 				msg = eerr.details
 			}
 		}
+		cmd.spinner.Stop()
+
 		log.Error(msg, "err", err)
 		fmt.Printf("%s, err: %s\n", msg, err)
 		cmd.exit(code)
@@ -105,15 +109,59 @@ func (cmd *rootCmd) Execute(args []string) {
 }
 
 type rootCmd struct {
-	cmd   *cobra.Command
-	debug bool
-	exit  func(int)
+	cmd     *cobra.Command
+	debug   bool
+	spinner *yacspin.Spinner
+	exit    func(int)
 }
 
 func newRootCmd(version string, exit func(int)) *rootCmd {
-	root := &rootCmd{
-		exit: exit,
+	cfg := yacspin.Config{
+		Frequency: 100 * time.Millisecond,
+		CharSet:   yacspin.CharSets[59],
+		Colors:    []string{"fgHiCyan"},
+		// StopCharacter:     "✓",
+		StopColors: []string{"fgHiGreen"},
+		// StopFailCharacter: "✗",
+		StopFailColors: []string{"fgHiRed"},
+		Suffix:         " ",
+		Writer:         os.Stderr,
 	}
+	spinner, err := yacspin.New(cfg)
+
+	if err != nil {
+		utils.Panic("failed to created spinner", err)
+	}
+
+	root := &rootCmd{
+		exit:    exit,
+		spinner: spinner,
+	}
+
+	utils.SetProgressCallback(func(msg string, status utils.ProgressStatus) {
+		if root.debug {
+			return
+		}
+
+		switch status {
+		case utils.ProgressStart:
+			spinner.Message(msg)
+			_ = spinner.Start()
+		case utils.ProgressUpdate:
+			spinner.Message(msg)
+		case utils.ProgressDone:
+			if msg != "" {
+				spinner.StopMessage(msg)
+			}
+			_ = spinner.Stop()
+		case utils.ProgressError:
+			if msg != "" {
+				spinner.StopFailMessage(msg)
+			}
+			_ = spinner.StopFail()
+		}
+	})
+
 	cmd := &cobra.Command{
 		Use:   "lsw",
 		Short: "Manage isolated Windows environments (bottles) from Linux",

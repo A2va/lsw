@@ -12,10 +12,10 @@ import (
 	"text/template"
 	"time"
 
+	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"charm.land/log/v2"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
 
@@ -408,31 +408,48 @@ func New(arch string, args NewV2Argument) error {
 	listener, evt := eventHandler(c, args.Name, q, otherDevices)
 
 	log.Info("installing Windows files")
-	fmt.Print("\rStatus: [1/3] Installing Windows Files...           ")
+	progressCallback := utils.GetProgressCallback()
+	if progressCallback != nil {
+		progressCallback("Installing Windows Files...", utils.ProgressStart)
+	}
 
 	ev := timeout(q, 8*time.Minute)
 	// Windows have taken more than 8 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
+		if progressCallback != nil {
+			progressCallback("Failed to complete first install step", utils.ProgressError)
+		}
 		log.Warn("VM did not restart within expected time during Windows installation")
 		return fmt.Errorf("failed to complete the first install step")
 	}
 
 	log.Info("configuring system settings")
-	fmt.Print("\rStatus: [2/3] Configuring System Settings...        ")
+	if progressCallback != nil {
+		progressCallback("Configuring System Settings...", utils.ProgressUpdate)
+	}
 
 	ev = timeout(q, 4*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
+		if progressCallback != nil {
+			progressCallback("Failed to complete system settings configuration", utils.ProgressError)
+		}
 		log.Warn("VM did not restart within expected time during system settings configuration")
 		return fmt.Errorf("failed to complete the second install step")
 	}
 
 	log.Info("finishing setup and scripts")
-	fmt.Print("\rStatus: [3/3] Finishing Setup & Scripts...          ")
+
+	if progressCallback != nil {
+		progressCallback("Finishing Setup & Scripts...", utils.ProgressUpdate)
+	}
 
 	ev = timeout(q, 5*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-shutdown" {
+		if progressCallback != nil {
+			progressCallback("Failed to shutdown at end of install", utils.ProgressError)
+		}
 		log.Warn("VM did not shut down within expected time during Windows installation")
 		return fmt.Errorf("failed to shutdown at the end of the install")
 	}
@@ -451,6 +468,9 @@ func New(arch string, args NewV2Argument) error {
 
 	err = removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
 	if err != nil {
+		if progressCallback != nil {
+			progressCallback("Failed to remove installation devices", utils.ProgressError)
+		}
 		utils.Panic("failed to remove installation devices", err)
 	}
 
@@ -459,7 +479,14 @@ func New(arch string, args NewV2Argument) error {
 		return nil
 	})
 	if err != nil {
+		if progressCallback != nil {
+			progressCallback("Failed to update raw.qemu config", utils.ProgressError)
+		}
 		utils.Panic("failed to update raw.qemu config", err)
+	}
+
+	if progressCallback != nil {
+		progressCallback("Bottle created successfully", utils.ProgressDone)
 	}
 
 	return nil

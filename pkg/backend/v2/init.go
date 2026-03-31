@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"charm.land/log/v2"
 )
 
 func computeStateHash(files []string) string {
@@ -176,6 +176,11 @@ func createSoftwareISO(filesInIso []string) error {
 
 // Download needed files
 func Init() {
+	progressCallback := utils.GetProgressCallback()
+	if progressCallback != nil {
+		progressCallback("Downloading assets", utils.ProgressStart)
+	}
+
 	err := downloadOpenSSH()
 	if err != nil {
 		utils.Panic("cannot download OpenSSH", err)
@@ -215,5 +220,9 @@ func Init() {
 	err = createSoftwareISO(sotfwareToPack)
 	if err != nil {
 		utils.Panic("cannot create software ISO", err)
+	}
+
+	if progressCallback != nil {
+		progressCallback("Assets downloaded", utils.ProgressDone)
 	}
 }

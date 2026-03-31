@@ -7,6 +7,28 @@ import (
 	"charm.land/log/v2"
 )
 
+// A callback type for the cli binary
+type ProgressStatus int
+
+const (
+	ProgressStart ProgressStatus = iota
+	ProgressUpdate
+	ProgressDone
+	ProgressError
+)
+
+type ProgressCallbackFunc func(string, ProgressStatus)
+
+var progressCallback ProgressCallbackFunc
+
+func SetProgressCallback(f ProgressCallbackFunc) {
+	progressCallback = f
+}
+
+func GetProgressCallback() ProgressCallbackFunc {
+	return progressCallback
+}
+
 func Exists(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
@@ -30,6 +52,10 @@ func Panic(msg string, errs ...error) {
 	var err error
 	if len(errs) > 0 {
 		err = errs[0]
+	}
+
+	if progressCallback != nil {
+		progressCallback(msg, ProgressError)
 	}
 
 	// Tell the logger to skip source information about this function

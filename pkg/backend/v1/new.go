@@ -1,10 +1,11 @@
 package v1
 
 import (
+	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/backend/v1/docker"
 	"github.com/A2va/lsw/pkg/backend/v1/podman"
 	"github.com/A2va/lsw/pkg/config"
-	"charm.land/log/v2"
+	"github.com/A2va/lsw/pkg/utils"
 )
 
 func New(name string, provider string) error {
@@ -14,6 +15,11 @@ func New(name string, provider string) error {
 	Init(provider)
 
 	log.Info("creating new bottle (v1 backend)", "name", name)
+
+	progressCallback := utils.GetProgressCallback()
+	if progressCallback != nil {
+		progressCallback("Creating bottle", utils.ProgressStart)
+	}
 
 	var err error
 	if provider == "docker" {
@@ -34,5 +40,9 @@ func New(name string, provider string) error {
 		Version:    "v1",
 		V1Provider: provider,
 	})
+
+	if progressCallback != nil {
+		progressCallback("Bottle created successfully", utils.ProgressDone)
+	}
 	return nil
 }
