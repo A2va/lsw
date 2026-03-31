@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/cache"
-	"github.com/A2va/lsw/pkg/config"
-	"github.com/A2va/lsw/pkg/utils"
 	"github.com/containerd/errdefs"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
+
+	"github.com/A2va/lsw/pkg/cache"
+	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 )
 
 func getDockerfile() (string, error) {

@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/config"
 	incus "github.com/lxc/incus/client"
 	"github.com/lxc/incus/shared/api"
+
+	"github.com/A2va/lsw/pkg/config"
 )
 
 func waitForWindowsAgent(c incus.InstanceServer, vmName string) error {

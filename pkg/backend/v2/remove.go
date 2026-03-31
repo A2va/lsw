@@ -1,8 +1,8 @@
 package v2
 
 import (
-	"github.com/A2va/lsw/pkg/config"
 	"charm.land/log/v2"
+	"github.com/A2va/lsw/pkg/config"
 )
 
 func Remove(bottle *config.Bottle) error {

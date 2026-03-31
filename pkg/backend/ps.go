@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"go.podman.io/common/pkg/report"
+
 	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
-	"go.podman.io/common/pkg/report"
 )
 
 func Ps(noHeading bool, all bool) error {

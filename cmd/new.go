@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	log "charm.land/log/v2"
+	"github.com/spf13/cobra"
+
 	v1 "github.com/A2va/lsw/pkg/backend/v1"
 	v2 "github.com/A2va/lsw/pkg/backend/v2"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"github.com/spf13/cobra"
 )
 
 // Give a new name to a bottle

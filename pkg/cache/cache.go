@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/A2va/lsw/pkg/utils"
 	"charm.land/log/v2"
 	"github.com/hashicorp/go-getter"
+
+	"github.com/A2va/lsw/pkg/utils"
 )
 
 // CachedFile represents a retrieved item from the cache

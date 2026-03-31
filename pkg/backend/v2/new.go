@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"charm.land/log/v2"
+	incus "github.com/lxc/incus/client"
+	"github.com/lxc/incus/shared/api"
+	"github.com/plus3it/gorecurcopy"
+
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	incus "github.com/lxc/incus/client"
-	"github.com/lxc/incus/shared/api"
-
-	"github.com/plus3it/gorecurcopy"
 )
 
 type NewV2Argument struct {

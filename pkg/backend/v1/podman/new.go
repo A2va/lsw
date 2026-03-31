@@ -1,9 +1,10 @@
 package podman
 
 import (
-	"github.com/A2va/lsw/pkg/config"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
+
+	"github.com/A2va/lsw/pkg/config"
 )
 
 func New(name string) error {

@@ -10,14 +10,14 @@ import (
 	"strings"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/cache"
-	"github.com/A2va/lsw/pkg/config"
-	"github.com/A2va/lsw/pkg/utils"
 	buildahDefine "github.com/containers/buildah/define"
-
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/containers/podman/v6/pkg/bindings/images"
 	"github.com/containers/podman/v6/pkg/domain/entities/types"
+
+	"github.com/A2va/lsw/pkg/cache"
+	"github.com/A2va/lsw/pkg/config"
+	"github.com/A2va/lsw/pkg/utils"
 )
 
 func getDockerfile() (string, error) {

@@ -7,9 +7,10 @@ import (
 	"os"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/config"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
+
+	"github.com/A2va/lsw/pkg/config"
 )
 
 func attachMethod(c *client.Client, nameOrID string) (client.HijackedResponse, error) {

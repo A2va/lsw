@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/utils"
 	"github.com/plus3it/gorecurcopy"
+
+	"github.com/A2va/lsw/pkg/utils"
 )
 
 func CopyFromCache(targetDir string, files []string) error {

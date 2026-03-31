@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/A2va/lsw/pkg/config"
 	"charm.land/log/v2"
+	"github.com/A2va/lsw/pkg/config"
 )
 
 func Shell(bottle *config.Bottle) error {

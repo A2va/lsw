@@ -8,15 +8,15 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/theckman/yacspin"
-
 	log "charm.land/log/v2"
+	"github.com/charmbracelet/colorprofile"
+	"github.com/spf13/cobra"
+	"github.com/theckman/yacspin"
+	"gopkg.in/natefinch/lumberjack.v2"
+
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
-	"github.com/charmbracelet/colorprofile"
-	"github.com/spf13/cobra"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var ansiRegex = regexp.MustCompile("[\u001b\u009b][\\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]")

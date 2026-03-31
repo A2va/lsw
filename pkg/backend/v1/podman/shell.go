@@ -7,10 +7,11 @@ import (
 	"os"
 
 	"charm.land/log/v2"
-	"github.com/A2va/lsw/pkg/config"
 	"github.com/containers/podman/v6/pkg/api/handlers"
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/docker/docker/api/types/container"
+
+	"github.com/A2va/lsw/pkg/config"
 )
 
 func attachMethod(c context.Context, nameOrID string, attachReady chan bool) error {
