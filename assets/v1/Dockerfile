@@ -12,6 +12,7 @@ ARG WINEPREFIX=/opt/prefix
 # Stage 1: Populate wine prefix with tools
 # =========================================================
 FROM fedora:43 AS msvc-builder
+LABEL lsw-image="true"
 
 ARG WINEPREFIX
 ARG POWERSHELL_VERSION
@@ -149,6 +150,7 @@ RUN wineserver -w
 # Stage 2: Minimal RootFS Builder
 # =========================================================
 FROM fedora:43 AS rootfs-builder
+LABEL lsw-image="true"
 
 # Create a directory to hold a minimal OS
 RUN mkdir -p /mnt/rootfs

@@ -146,14 +146,18 @@ func buildImage(c context.Context) error {
 		progressCallback("Building image", utils.ProgressStart)
 	}
 
-	noCache := true
-	remove := true
-	layers := false
+	// Previously cache was disabled in non dev mode and it meant
+	// that a failing build must be restarted from zero.
+	// This behaviour has be changed to always enabled the cache, but prune the image left over
+	// if the build was succesful.
+	noCache := false
+	layers := true
+	squash := true
 
-	// Use caching when developing the project to have a better iteration
 	if version.Version == "dev" {
 		noCache = false
 		layers = true
+		squash = false
 	}
 
 	dockerfilePath, err := getDockerfile()
@@ -175,12 +179,13 @@ func buildImage(c context.Context) error {
 
 	buildOptions := types.BuildOptions{
 		BuildOptions: buildahDefine.BuildOptions{
-
 			ContextDirectory:        contextDir,
 			NoCache:                 noCache,
 			RemoveIntermediateCtrs:  true,
-			ForceRmIntermediateCtrs: remove,
+			ForceRmIntermediateCtrs: true,
 			Layers:                  layers,
+			Labels:                  []string{"lsw-image=true"},
+			Squash:                  squash,
 			Output:                  targetTag,
 			PullPolicy:              buildahDefine.PullIfMissing,
 			// Cache only works if the ouput format are defined
@@ -195,7 +200,28 @@ func buildImage(c context.Context) error {
 
 	_, err = images.Build(c, []string{dockerfileName}, buildOptions)
 	if err != nil {
-		utils.Panic("", err)
+		return err
+	}
+
+	if version.Version != "dev" {
+		if progressCallback != nil {
+			progressCallback("Prune leftover images", utils.ProgressUpdate)
+		}
+
+		t := true
+		filters := map[string][]string{
+			"label": {"lsw-image=true"},
+		}
+		pruneReport, err := images.Prune(c, &images.PruneOptions{
+			External:   &t,
+			BuildCache: &t,
+			Filters:    filters,
+		})
+		if err != nil {
+			log.Warn("Failed to clean up build cache, but image was built successfully", "err", err)
+		} else {
+			log.Debug("Cleaned up dangling cache", "deleted", len(pruneReport))
+		}
 	}
 
 	if progressCallback != nil {
