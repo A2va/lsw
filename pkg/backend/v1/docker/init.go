@@ -165,6 +165,11 @@ func buildImage(c *client.Client) error {
 		}
 	}
 
+	progressCallback := utils.GetProgressCallback()
+	if progressCallback != nil {
+		progressCallback("Building image", utils.ProgressStart)
+	}
+
 	noCache := true
 	remove := true
 	layers := false
@@ -209,6 +214,10 @@ func buildImage(c *client.Client) error {
 		}
 	} else {
 		_, err = io.Copy(io.Discard, res.Body)
+	}
+
+	if progressCallback != nil {
+		progressCallback("Build complete", utils.ProgressDone)
 	}
 
 	return nil

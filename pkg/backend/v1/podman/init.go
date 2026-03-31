@@ -141,6 +141,11 @@ func buildImage(c context.Context) error {
 		}
 	}
 
+	progressCallback := utils.GetProgressCallback()
+	if progressCallback != nil {
+		progressCallback("Building image", utils.ProgressStart)
+	}
+
 	noCache := true
 	remove := true
 	layers := false
@@ -193,6 +198,9 @@ func buildImage(c context.Context) error {
 		utils.Panic("", err)
 	}
 
+	if progressCallback != nil {
+		progressCallback("Build complete", utils.ProgressDone)
+	}
 	return nil
 }
 
@@ -212,5 +220,8 @@ func Init() {
 		}
 	}
 
-	buildImage(c)
+	err = buildImage(c)
+	if err != nil {
+		utils.Panic("", err)
+	}
 }
