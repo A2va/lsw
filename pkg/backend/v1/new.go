@@ -16,10 +16,7 @@ func New(name string, provider string) error {
 
 	log.Info("creating new bottle (v1 backend)", "name", name)
 
-	progressCallback := utils.GetProgressCallback()
-	if progressCallback != nil {
-		progressCallback("Creating bottle", utils.ProgressStart)
-	}
+	utils.ReportProgress("Creating bottle", utils.ProgressStart)
 
 	var err error
 	if provider == "docker" {
@@ -41,8 +38,6 @@ func New(name string, provider string) error {
 		V1Provider: provider,
 	})
 
-	if progressCallback != nil {
-		progressCallback("Bottle created successfully", utils.ProgressDone)
-	}
+	utils.ReportProgress("Bottle created successfully", utils.ProgressDone)
 	return nil
 }

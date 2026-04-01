@@ -408,48 +408,34 @@ func New(arch string, args NewV2Argument) error {
 	listener, evt := eventHandler(c, args.Name, q, otherDevices)
 
 	log.Info("installing Windows files")
-	progressCallback := utils.GetProgressCallback()
-	if progressCallback != nil {
-		progressCallback("Installing Windows Files...", utils.ProgressStart)
-	}
+	utils.ReportProgress("Installing Windows Files...", utils.ProgressStart)
 
 	ev := timeout(q, 8*time.Minute)
 	// Windows have taken more than 8 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
-		if progressCallback != nil {
-			progressCallback("Failed to complete first install step", utils.ProgressError)
-		}
+		utils.ReportProgress("Failed to complete first install step", utils.ProgressError)
 		log.Warn("VM did not restart within expected time during Windows installation")
 		return fmt.Errorf("failed to complete the first install step")
 	}
 
 	log.Info("configuring system settings")
-	if progressCallback != nil {
-		progressCallback("Configuring System Settings...", utils.ProgressUpdate)
-	}
+	utils.ReportProgress("Configuring System Settings...", utils.ProgressUpdate)
 
 	ev = timeout(q, 4*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-restarted" {
-		if progressCallback != nil {
-			progressCallback("Failed to complete system settings configuration", utils.ProgressError)
-		}
+		utils.ReportProgress("Failed to complete system settings configuration", utils.ProgressError)
 		log.Warn("VM did not restart within expected time during system settings configuration")
 		return fmt.Errorf("failed to complete the second install step")
 	}
 
 	log.Info("finishing setup and scripts")
-
-	if progressCallback != nil {
-		progressCallback("Finishing Setup & Scripts...", utils.ProgressUpdate)
-	}
+	utils.ReportProgress("Finishing Setup & Scripts...", utils.ProgressUpdate)
 
 	ev = timeout(q, 5*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-shutdown" {
-		if progressCallback != nil {
-			progressCallback("Failed to shutdown at end of install", utils.ProgressError)
-		}
+		utils.ReportProgress("Failed to shutdown at end of install", utils.ProgressError)
 		log.Warn("VM did not shut down within expected time during Windows installation")
 		return fmt.Errorf("failed to shutdown at the end of the install")
 	}
@@ -468,9 +454,7 @@ func New(arch string, args NewV2Argument) error {
 
 	err = removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
 	if err != nil {
-		if progressCallback != nil {
-			progressCallback("Failed to remove installation devices", utils.ProgressError)
-		}
+		utils.ReportProgress("Failed to remove installation devices", utils.ProgressError)
 		utils.Panic("failed to remove installation devices", err)
 	}
 
@@ -479,15 +463,11 @@ func New(arch string, args NewV2Argument) error {
 		return nil
 	})
 	if err != nil {
-		if progressCallback != nil {
-			progressCallback("Failed to update raw.qemu config", utils.ProgressError)
-		}
+		utils.ReportProgress("Failed to update raw.qemu config", utils.ProgressError)
 		utils.Panic("failed to update raw.qemu config", err)
 	}
 
-	if progressCallback != nil {
-		progressCallback("Bottle created successfully", utils.ProgressDone)
-	}
+	utils.ReportProgress("Bottle created successfully", utils.ProgressDone)
 
 	return nil
 }

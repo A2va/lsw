@@ -176,10 +176,7 @@ func createSoftwareISO(filesInIso []string) error {
 
 // Download needed files
 func Init() {
-	progressCallback := utils.GetProgressCallback()
-	if progressCallback != nil {
-		progressCallback("Downloading assets", utils.ProgressStart)
-	}
+	utils.ReportProgress("Downloading assets", utils.ProgressStart)
 
 	err := downloadOpenSSH()
 	if err != nil {
@@ -222,7 +219,5 @@ func Init() {
 		utils.Panic("cannot create software ISO", err)
 	}
 
-	if progressCallback != nil {
-		progressCallback("Assets downloaded", utils.ProgressDone)
-	}
+	utils.ReportProgress("Assets downloaded", utils.ProgressDone)
 }

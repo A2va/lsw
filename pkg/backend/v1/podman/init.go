@@ -141,10 +141,7 @@ func buildImage(c context.Context) error {
 		}
 	}
 
-	progressCallback := utils.GetProgressCallback()
-	if progressCallback != nil {
-		progressCallback("Building image", utils.ProgressStart)
-	}
+	utils.ReportProgress("Building image", utils.ProgressStart)
 
 	// Previously cache was disabled in non dev mode and it meant
 	// that a failing build must be restarted from zero.
@@ -204,9 +201,7 @@ func buildImage(c context.Context) error {
 	}
 
 	if version.Version != "dev" {
-		if progressCallback != nil {
-			progressCallback("Prune leftover images", utils.ProgressUpdate)
-		}
+		utils.ReportProgress("Prune leftover images", utils.ProgressUpdate)
 
 		t := true
 		filters := map[string][]string{
@@ -224,9 +219,7 @@ func buildImage(c context.Context) error {
 		}
 	}
 
-	if progressCallback != nil {
-		progressCallback("Build complete", utils.ProgressDone)
-	}
+	utils.ReportProgress("Build complete", utils.ProgressDone)
 	return nil
 }
 

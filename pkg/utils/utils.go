@@ -25,8 +25,10 @@ func SetProgressCallback(f ProgressCallbackFunc) {
 	progressCallback = f
 }
 
-func GetProgressCallback() ProgressCallbackFunc {
-	return progressCallback
+func ReportProgress(msg string, st ProgressStatus) {
+	if progressCallback != nil {
+		progressCallback(msg, st)
+	}
 }
 
 func Exists(path string) bool {
