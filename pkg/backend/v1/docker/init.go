@@ -171,21 +171,25 @@ func buildImage(c *client.Client) error {
 		progressCallback("Building image", utils.ProgressStart)
 	}
 
-	noCache := true
+	// Previously cache was disabled in non dev mode and it meant
+	// that a failing build must be restarted from zero.
+	// This behaviour has be changed to always enabled the cache, but prune the image left over
+	// if the build was succesful.
+	noCache := false
 	remove := true
-	layers := false
-	// Use caching when developing the project to have a better iteration
+	squash := true
+
 	if version.Version == "dev" {
 		noCache = false
 		remove = false
-		layers = true
+		squash = false
 	}
 
 	buildOptions := client.ImageBuildOptions{
 		NoCache:     noCache,
 		Remove:      remove,
 		ForceRemove: remove,
-		Squash:      layers,
+		Squash:      squash,
 		Tags:        []string{targetTag},
 	}
 
@@ -215,6 +219,17 @@ func buildImage(c *client.Client) error {
 		}
 	} else {
 		_, err = io.Copy(io.Discard, res.Body)
+	}
+
+	if version.Version != "dev" {
+		if progressCallback != nil {
+			progressCallback("Prune leftover images", utils.ProgressUpdate)
+		}
+
+		filters := make(client.Filters).Add("label", "lsw-image=true")
+		c.ImagePrune(context.Background(), client.ImagePruneOptions{
+			Filters: filters,
+		})
 	}
 
 	if progressCallback != nil {
