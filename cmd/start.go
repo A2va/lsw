@@ -11,13 +11,8 @@ import (
 
 func startCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start [bottle-name]",
-		Short: "Start a specific Windows bottle",
-		Long: `Can specify the bottle name, or LSW will use the default configured bottle.
-
-Example:
-  lsw start my-windows-bottle
-  lsw start # Starts the default configured bottle`,
+		Use:           "start [bottle-name]",
+		Short:         "Start a Windows bottle",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -28,7 +23,7 @@ Example:
 			bottle, found := config.GetBottle(bottleName)
 
 			if !found {
-				return fmt.Errorf("not found the bottle")
+				return fmt.Errorf("bottle '%s' not found", bottleName)
 			}
 
 			if bottle.Version == "v1" {
@@ -36,7 +31,7 @@ Example:
 			} else if bottle.Version == "v2" {
 				return v2.Start(bottle)
 			}
-			return fmt.Errorf("not a valid backend")
+			return fmt.Errorf("invalid backend version: %s", bottle.Version)
 		},
 	}
 	return cmd

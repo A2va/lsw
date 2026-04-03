@@ -11,15 +11,8 @@ import (
 
 func stopCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "stop [bottle-name]",
-		Short: "Stop a running Windows bottle",
-		Long: `Gracefully shut down a running Windows bottle.
-
-Can specify the bottle name, or LSW will use the default configured bottle.
-
-Example:
-  lsw stop my-windows-bottle
-  lsw stop # Stops the default configured bottle`,
+		Use:           "stop [bottle-name]",
+		Short:         "Stop a running Windows bottle",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -30,7 +23,7 @@ Example:
 			bottle, found := config.GetBottle(bottleName)
 
 			if !found {
-				return fmt.Errorf("not found the bottle")
+				return fmt.Errorf("bottle '%s' not found", bottleName)
 			}
 
 			if bottle.Version == "v1" {
@@ -38,7 +31,7 @@ Example:
 			} else if bottle.Version == "v2" {
 				return v2.Stop(bottle)
 			}
-			return fmt.Errorf("not a valid backend")
+			return fmt.Errorf("invalid backend version: %s", bottle.Version)
 		},
 	}
 	return cmd

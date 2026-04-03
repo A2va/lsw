@@ -169,7 +169,7 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 
 Features:
   - Supports v1 (Wine-based containers) and v2 (Incus VMs).
-  - Create, access (shell), start, and stop Windows environments.
+  - Create, access (shell), start, stop, and remove Windows bottles.
   - Facilitates cross-platform development and testing.`,
 		Version:       version,
 		SilenceUsage:  true,

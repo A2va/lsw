@@ -11,14 +11,9 @@ import (
 
 func removeCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "remove",
-		Aliases: []string{"rm"},
-		Short:   "Remove a bottle",
-		Long: `Can specify the bottle name, or LSW will use the default configured bottle.
-
-Example:
-  lsw remove my-windows-bottle
-  lsw remove # Removes the default configured bottle`,
+		Use:           "remove [bottle-name]",
+		Aliases:       []string{"rm"},
+		Short:         "Remove a Windows bottle",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -29,7 +24,7 @@ Example:
 			bottle, found := config.GetBottle(bottleName)
 
 			if !found {
-				return fmt.Errorf("not found the bottle")
+				return fmt.Errorf("bottle '%s' not found", bottleName)
 			}
 
 			if bottle.Version == "v1" {
@@ -37,7 +32,7 @@ Example:
 			} else if bottle.Version == "v2" {
 				return v2.Remove(bottle)
 			}
-			return fmt.Errorf("not a valid backend")
+			return fmt.Errorf("invalid backend version: %s", bottle.Version)
 		},
 	}
 	return cmd

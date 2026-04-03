@@ -17,7 +17,7 @@ func runShellCommand(cmd *cobra.Command, args []string) error {
 	bottle, found := config.GetBottle(bottleName)
 
 	if !found {
-		return fmt.Errorf("not found the bottle")
+		return fmt.Errorf("bottle '%s' not found", bottleName)
 	}
 
 	if bottle.Version == "v1" {
@@ -30,14 +30,10 @@ func runShellCommand(cmd *cobra.Command, args []string) error {
 
 func shellCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "shell [bottle-name]",
-		Aliases: []string{"s"},
-		Short:   "Enter an interactive shell into a Windows bottle",
-		Long: `Can specify the bottle name, or LSW will use the default configured bottle.
-
-Example:
-  lsw shell my-windows-bottle
-  lsw shell # Uses the default configured bottle`,
+		Use:           "shell [bottle-name]",
+		Aliases:       []string{"s"},
+		Short:         "Enter an interactive shell in a Windows bottle",
+		Long:          `Specify a bottle name, or use the default bottle if configured.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE:          runShellCommand,
