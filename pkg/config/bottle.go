@@ -4,6 +4,27 @@ import (
 	"charm.land/log/v2"
 )
 
+// A bottle is a single unit for representing a single instance of windows with it's specific set of congiuration and software
+// Can be tied to a v1 or v2 backend.
+type Bottle struct {
+	Name string `toml:"name"`
+	// v1 or v2
+	Version    string `toml:"version"`
+	Shell      string `toml:"shell"`
+	V1Provider string `toml:"v1_provider"`
+	// Permanently mounted folder (absolute path)
+	Mounts []string
+	// the plain text password for a v2 vm
+	Password string
+}
+
+type BottleStatus struct {
+	Name    string
+	Running bool
+	// Current working directory when lsw shell was executed
+	EnteredFrom string
+}
+
 func GetBottle(name string) (*Bottle, bool) {
 	if name == "" {
 		return nil, false

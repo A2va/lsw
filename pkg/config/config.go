@@ -30,20 +30,6 @@ type Config struct {
 	DefaultV1Provider string `toml:"default_v1_provider"`
 }
 
-// A bottle is a single unit for representing a single instance of windows with it's specific set of congiuration and software
-// Can be tied to a v1 or v2 backend.
-type Bottle struct {
-	Name string `toml:"name"`
-	// v1 or v2
-	Version    string `toml:"version"`
-	Shell      string `toml:"shell"`
-	V1Provider string `toml:"v1_provider"`
-	// Permanently mounted folder (absolute path)
-	Mounts []string
-	// the plain text password for a v2 vm
-	Password string
-}
-
 func getConfigPath() (string, error) {
 	c, exist := os.LookupEnv("XDG_CONFIG_HOME")
 
