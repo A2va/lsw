@@ -20,6 +20,6 @@ func psCmd() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().Bool("noheading", false, "Do not print headers")
-	cmd.PersistentFlags().Bool("all", false, "Show all the bottles, default is only running bottles")
+	cmd.PersistentFlags().BoolP("all", "a", false, "Show all the bottles, default is only running bottles")
 	return cmd
 }
