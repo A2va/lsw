@@ -22,13 +22,21 @@ func attachMethod(c context.Context, nameOrID string, attachReady chan bool) err
 	return nil
 }
 
-func execMethod(c context.Context, nameOrID string) error {
+func execMethod(c context.Context, nameOrID string, cmd string) error {
+
+	command := []string{
+		"wine",
+		"cmd",
+		"/C",
+		cmd,
+	}
+
 	execConfig := handlers.ExecCreateConfig{
 		ExecOptions: container.ExecOptions{
-			Cmd:          []string{"wine", "cmd"},
-			AttachStdin:  true,
+			Cmd:          command,
 			AttachStdout: true,
-			Tty:          true,
+			AttachStderr: true,
+			// Tty:          true,
 		},
 	}
 
@@ -42,6 +50,7 @@ func execMethod(c context.Context, nameOrID string) error {
 	opts.WithOutputStream(os.Stdout)
 	opts.WithAttachInput(true)
 	opts.WithAttachOutput(true)
+	opts.WithAttachError(true)
 
 	if err := containers.ExecStartAndAttach(c, execID, opts); err != nil {
 		return fmt.Errorf("attach failed: %w", err)
@@ -49,8 +58,7 @@ func execMethod(c context.Context, nameOrID string) error {
 	return nil
 }
 
-func Shell(bottle *config.Bottle) error {
-	// FIXME Cannot create two shell session of the same bottle
+func Shell(bottle *config.Bottle, cmd string) error {
 	log.Info("shelling into container (podman)", "name", bottle.Name)
 
 	c, err := podmanClient()
@@ -70,6 +78,16 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
+	err = containers.Start(c, containerName, &containers.StartOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Non interactive
+	if cmd != "" {
+		return execMethod(c, containerName, cmd)
+	}
+
 	attachReady := make(chan bool, 1)
 	attachErr := make(chan error, 1)
 
@@ -80,11 +98,6 @@ func Shell(bottle *config.Bottle) error {
 
 	// Wait until Podman signals that it is actively listening
 	<-attachReady
-
-	err = containers.Start(c, containerName, &containers.StartOptions{})
-	if err != nil {
-		return err
-	}
 
 	defer func() {
 		containers.Stop(c, containerName, &containers.StopOptions{})

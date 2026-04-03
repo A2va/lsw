@@ -20,10 +20,12 @@ func runShellCommand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("bottle '%s' not found", bottleName)
 	}
 
+	cmdFlag, _ := cmd.Flags().GetString("cmd")
+
 	if bottle.Version == "v1" {
-		return v1.Shell(bottle)
+		return v1.Shell(bottle, cmdFlag)
 	} else if bottle.Version == "v2" {
-		return v2.Shell(bottle)
+		return v2.Shell(bottle, cmdFlag)
 	}
 	return fmt.Errorf("not a valid backend")
 }
@@ -38,5 +40,7 @@ func shellCmd() *cobra.Command {
 		SilenceErrors: true,
 		RunE:          runShellCommand,
 	}
+
+	cmd.Flags().String("cmd", "", "Execute the given cmd in Command Prompt (no interaction)")
 	return cmd
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"charm.land/log/v2"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
 
@@ -28,30 +29,42 @@ func attachMethod(c *client.Client, nameOrID string) (client.HijackedResponse, e
 	return res.HijackedResponse, nil
 }
 
-func execMethod(c *client.Client, nameOrID string) (client.HijackedResponse, error) {
+func execMethod(c *client.Client, nameOrID string, cmd string) error {
+
+	command := []string{
+		"wine",
+		"cmd",
+		"/C",
+		cmd,
+	}
+
 	execConfig := client.ExecCreateOptions{
-		Cmd:          []string{"wine", "cmd"},
-		AttachStdin:  true,
+		Cmd:          command,
 		AttachStdout: true,
 		AttachStderr: true,
-		TTY:          true,
+		// TTY:          true,
 	}
 
 	execIDResp, err := c.ExecCreate(context.Background(), nameOrID, execConfig)
 	if err != nil {
-		return client.HijackedResponse{}, err
+		return err
 	}
 
 	attachResp, err := c.ExecAttach(context.Background(), execIDResp.ID, client.ExecAttachOptions{
-		TTY: true,
+		// TTY: true,
 	})
 	if err != nil {
-		return client.HijackedResponse{}, err
+		return err
 	}
-	return attachResp.HijackedResponse, nil
+
+	defer attachResp.Close()
+
+	// Demultiplex stdout and stderr
+	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, attachResp.Reader)
+	return nil
 }
 
-func Shell(bottle *config.Bottle) error {
+func Shell(bottle *config.Bottle, cmd string) error {
 	log.Info("shelling into container (docker)", "name", bottle.Name)
 
 	c, err := client.New(client.FromEnv)
@@ -71,16 +84,21 @@ func Shell(bottle *config.Bottle) error {
 		return err
 	}
 
+	_, err = c.ContainerStart(context.Background(), containerName, client.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Non interactive
+	if cmd != "" {
+		return execMethod(c, containerName, cmd)
+	}
+
 	res, err := attachMethod(c, containerName)
 	if err != nil {
 		return err
 	}
 	defer res.Close()
-
-	_, err = c.ContainerStart(context.Background(), containerName, client.ContainerStartOptions{})
-	if err != nil {
-		return err
-	}
 
 	fd := os.Stdin.Fd()
 	if term.IsTerminal(fd) {

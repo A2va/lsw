@@ -9,7 +9,7 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 )
 
-func Shell(bottle *config.Bottle) error {
+func Shell(bottle *config.Bottle, cmd string) error {
 	// TODO Maybe start if stopped
 
 	c, err := incusClient()
@@ -62,21 +62,25 @@ func Shell(bottle *config.Bottle) error {
 
 	shell := bottle.GetShell()
 	var remoteCmd string
-	if shell == "powershell" {
+
+	if cmd != "" {
+		// Non interactive
+		remoteCmd = fmt.Sprintf("cd /d %s & cmd /c %s", mountPoint.volumeLetter, cmd)
+	} else if shell == "powershell" {
 		remoteCmd = fmt.Sprintf("cd %s: ; powershell -NoExit", mountPoint.volumeLetter)
 	} else {
 		remoteCmd = fmt.Sprintf("cd /d %s & cmd /k", mountPoint.volumeLetter)
 	}
 
-	cmd := exec.Command("ssh", "-t", username+"@"+idAddr,
+	command := exec.Command("ssh", "-t", username+"@"+idAddr,
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "StrictHostKeyChecking=no",
 		remoteCmd,
 	)
 
-	cmd.Stdout = os.Stdout
+	command.Stdout = os.Stdout
 	// cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	command.Stdin = os.Stdin
 
 	lsw, err := os.Executable()
 	if err != nil {
@@ -86,13 +90,13 @@ func Shell(bottle *config.Bottle) error {
 
 	// SSH cannot accept password from the cmd line, the only way is with a ask pass script.
 	// Another solution would be to generate a SSH key and pack it with the unattended iso.
-	cmd.Env = append(os.Environ(),
+	command.Env = append(os.Environ(),
 		fmt.Sprintf("SSH_ASKPASS=%s", lsw),
 		"SSH_ASKPASS_REQUIRE=force",
 		fmt.Sprintf("LSW_ASKPASS=%s", bottle.Password),
 	)
 
-	if err := cmd.Run(); err != nil {
+	if err := command.Run(); err != nil {
 		return fmt.Errorf("failed to exec ssh: %w", err)
 	}
 
