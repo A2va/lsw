@@ -1,0 +1,148 @@
+name: QA - v1 (Wine/Container)
+
+on:
+  pull_request:
+    branches: [next]
+  workflow_dispatch:
+
+jobs:
+  qa-v1:
+    name: v1 QA (${{ matrix.build_mode }} / ${{ matrix.provider }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # If one test fails, let the others finish
+      matrix:
+        build_mode: [dev, prod]
+        provider: [docker, podman]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Docker
+        if: matrix.provider == 'docker'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Podman
+        if: matrix.provider == 'podman'
+        run: |
+          podman --version
+          # Force-create the hardcoded directory your Go code expects
+          sudo mkdir -p /run/user/1001/podman
+          sudo chown -R 1001:1001 /run/user/1001
+          export XDG_RUNTIME_DIR=/run/user/1001
+
+          # Start the Podman API service
+          podman system service -t 0 &
+
+          # Wait for the socket to be created
+          while [ ! -S "/run/user/1001/podman/podman.sock" ]; do
+            echo "Waiting for podman socket to be created..."
+            sleep 1
+          done
+          echo "Podman socket successfully created!"
+
+      # ── Build (Dev Mode) ───────────────────────────────────────────────────
+      - name: Build lsw (Dev mode)
+        if: matrix.build_mode == 'dev'
+        run: make build
+        env:
+          CGO_ENABLED: "1"
+
+      # ── Build (Prod Mode) ──────────────────────────────────────────────────
+      - name: Build lsw (Prod mode via GoReleaser)
+        if: matrix.build_mode == 'prod'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: build --snapshot --clean --single-target
+        env:
+          CGO_ENABLED: "1"
+
+      # ── Path Configuration ─────────────────────────────────────────────────
+      - name: Prepare lsw binary
+        run: |
+          if [ "${{ matrix.build_mode }}" == "prod" ]; then
+            # GoReleaser puts binaries in the dist/ folder.
+            # Find the binary and copy it to the root workspace.
+            find dist -type f -name lsw -exec cp {} . \;
+          fi
+          echo "${{ github.workspace }}" >> "$GITHUB_PATH"
+
+      # ── Initialization ─────────────────────────────────────────────────────
+      - name: "[QA] Initialize v1 backend"
+        run: lsw new v1 --init --provider ${{ matrix.provider }}
+
+      # ── Create ─────────────────────────────────────────────────────────────
+      - name: "[QA] lsw new v1 — create a bottle"
+        run: lsw new v1 --name qa-bottle --provider ${{ matrix.provider }}
+
+      # ── List ───────────────────────────────────────────────────────────────
+      - name: "[QA] lsw ps --all — bottle appears in list"
+        run: |
+          output=$(lsw ps --all 2>&1 || true)
+          echo "--- DEBUG OUTPUT ---"
+          echo "$output"
+          echo "--------------------"
+
+          if ! echo "$output" | grep -q "qa-bottle"; then
+            echo "ERROR: 'qa-bottle' not found in 'lsw ps --all' output"
+            exit 1
+          fi
+
+      # ── Shell / command execution ──────────────────────────────────────────
+      - name: "[QA] lsw shell — execute a command inside the Windows bottle"
+        run: |
+          output=$(lsw shell qa-bottle --cmd "echo hello-from-wine")
+          echo "$output"
+          if ! echo "$output" | grep -qi "hello-from-wine"; then
+            echo "ERROR: Expected output from Windows shell not found"
+            exit 1
+          fi
+
+      # ── File creation & host verification ──────────────────────────────────
+      - name: "[QA] Create a file inside the Windows shell"
+        run: lsw shell qa-bottle --cmd "echo qa-test-content > qa-test.txt"
+
+      - name: "[QA] Verify created file exists on the Linux host"
+        run: |
+          FILE_PATH="$PWD/qa-test.txt"
+          echo "Looking for: $FILE_PATH"
+          if [ ! -f "$FILE_PATH" ]; then
+            exit 1
+          fi
+          cat "$FILE_PATH"
+          echo "File successfully found on host."
+
+      # ── Remove ─────────────────────────────────────────────────────────────
+      - name: "[QA] lsw remove — remove bottle and its resources"
+        run: lsw remove qa-bottle
+
+      - name: "[QA] Verify bottle is gone"
+        run: |
+          output=$(lsw ps --all)
+          echo "$output"
+          if echo "$output" | grep -q "qa-bottle"; then
+            echo "ERROR: 'qa-bottle' still listed after removal"
+            exit 1
+          fi
+
+      - name: "[QA] Verify container volume is removed"
+        run: |
+          if ${{ matrix.provider }} volume inspect lsw-v1-qa-bottle > /dev/null 2>&1; then
+            echo "ERROR: Volume 'lsw-v1-qa-bottle' still exists after 'lsw remove'"
+            exit 1
+          fi
+          echo "Volume successfully removed."
+
+      # ── Cleanup (always run) ───────────────────────────────────────────────
+      - name: Cleanup — force-remove bottle if tests failed
+        if: failure()
+        run: lsw remove qa-bottle || true
