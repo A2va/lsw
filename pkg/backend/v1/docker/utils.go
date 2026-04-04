@@ -90,7 +90,7 @@ func GetStatus(name string, all bool) ([]config.BottleStatus, error) {
 		return []config.BottleStatus{}, err
 	}
 
-	f := make(client.Filters).Add("reference", "lsw-v1:*").Add("name", fmt.Sprintf("^lsw-%s", name))
+	f := make(client.Filters).Add("ancestor", "lsw-v1:.*").Add("name", fmt.Sprintf("^lsw-%s", name))
 	items, err := c.ContainerList(context.Background(), client.ContainerListOptions{
 		Filters: f,
 	})
