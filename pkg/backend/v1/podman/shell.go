@@ -59,7 +59,7 @@ func execMethod(c context.Context, nameOrID string, cmd string) error {
 }
 
 func Shell(bottle *config.Bottle, cmd string) error {
-	log.Info("shelling into container (podman)", "name", bottle.Name)
+	log.Info("shelling into container", "name", bottle.Name)
 
 	c, err := podmanClient()
 	if err != nil {
@@ -82,6 +82,12 @@ func Shell(bottle *config.Bottle, cmd string) error {
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		t := true
+		containers.Stop(c, containerName, &containers.StopOptions{})
+		containers.Remove(c, containerName, &containers.RemoveOptions{Force: &t})
+	}()
 
 	// Non interactive
 	if cmd != "" {

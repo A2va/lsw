@@ -65,7 +65,7 @@ func execMethod(c *client.Client, nameOrID string, cmd string) error {
 }
 
 func Shell(bottle *config.Bottle, cmd string) error {
-	log.Info("shelling into container (docker)", "name", bottle.Name)
+	log.Info("shelling into container", "name", bottle.Name)
 
 	c, err := client.New(client.FromEnv)
 	if err != nil {
@@ -88,6 +88,14 @@ func Shell(bottle *config.Bottle, cmd string) error {
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		// Use a fresh context for cleanup to ensure it runs even if a parent context was cancelled.
+		cleanupCtx := context.Background()
+
+		_, err = c.ContainerStop(cleanupCtx, containerName, client.ContainerStopOptions{})
+		_, err = c.ContainerRemove(cleanupCtx, containerName, client.ContainerRemoveOptions{Force: true})
+	}()
 
 	// Non interactive
 	if cmd != "" {
@@ -125,15 +133,6 @@ func Shell(bottle *config.Bottle, cmd string) error {
 	}()
 
 	<-outputDone
-	_, err = c.ContainerStop(context.Background(), containerName, client.ContainerStopOptions{})
-	if err != nil {
-		return err
-	}
-
-	_, err = c.ContainerRemove(context.Background(), containerName, client.ContainerRemoveOptions{Force: true})
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
