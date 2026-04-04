@@ -14,8 +14,7 @@ func psCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			noHeaders, _ := cmd.Flags().GetBool("noheading")
 			all, _ := cmd.Flags().GetBool("all")
-			backend.Ps(noHeaders, all)
-			return nil
+			return backend.Ps(noHeaders, all)
 		},
 	}
 
