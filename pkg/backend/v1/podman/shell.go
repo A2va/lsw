@@ -99,10 +99,5 @@ func Shell(bottle *config.Bottle, cmd string) error {
 	// Wait until Podman signals that it is actively listening
 	<-attachReady
 
-	defer func() {
-		containers.Stop(c, containerName, &containers.StopOptions{})
-		containers.Remove(c, containerName, &containers.RemoveOptions{})
-	}()
-
 	return <-attachErr
 }

@@ -125,13 +125,12 @@ func Shell(bottle *config.Bottle, cmd string) error {
 	}()
 
 	<-outputDone
-
 	_, err = c.ContainerStop(context.Background(), containerName, client.ContainerStopOptions{})
 	if err != nil {
 		return err
 	}
 
-	_, err = c.ContainerRemove(context.Background(), containerName, client.ContainerRemoveOptions{})
+	_, err = c.ContainerRemove(context.Background(), containerName, client.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		return err
 	}
