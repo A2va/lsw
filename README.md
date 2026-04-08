@@ -11,6 +11,12 @@ Like WSL, LSW provides two backends:
 - v1 — Wine (container-based) → fast, lightweight
 - v2 — Incus VM (full Windows VM)
 
+Enough talking, here is a demo
+
+<p align="center">
+  <img src="demo/tour.gif" />
+</p>
+
 ## Installation & Setup
 
 ### Install Dependencies for v1
