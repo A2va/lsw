@@ -129,14 +129,16 @@ func (c *Config) AddBottle(bottle Bottle) {
 }
 
 func SetVersion(versionCmd string, debugFlag bool) {
-	// Placeholder when the executable is not built by goreleaser
-	if versionCmd == "" {
+	fullVersion := versionCmd
+	parts := strings.Split(fullVersion, "\n")
+
+	// If the executable is not built by goreleaser versionCmd will contain just dev
+	// so parts will have a size of 1
+	if len(parts) == 1 || versionCmd == "" {
 		v = Version{Version: "dev", Commit: "dev", ShortCommit: "dev", DebugFlag: debugFlag}
 		return
 	}
 
-	fullVersion := versionCmd
-	parts := strings.Split(fullVersion, "\n")
 	version := parts[0]
 	if version == "" {
 		version = "dev"

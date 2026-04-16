@@ -111,6 +111,7 @@ func (cmd *rootCmd) Execute(args []string) {
 type rootCmd struct {
 	cmd     *cobra.Command
 	debug   bool
+	version string
 	spinner *yacspin.Spinner
 	exit    func(int)
 }
@@ -135,6 +136,7 @@ func newRootCmd(version string, exit func(int)) *rootCmd {
 
 	root := &rootCmd{
 		exit:    exit,
+		version: version,
 		spinner: spinner,
 	}
 
@@ -187,7 +189,7 @@ Features:
 				utils.Panic("error loading config file", err)
 			}
 
-			config.SetVersion(cmd.Version, root.debug)
+			config.SetVersion(root.version, root.debug)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			err := config.Save()
