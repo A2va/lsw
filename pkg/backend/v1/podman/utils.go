@@ -73,11 +73,15 @@ func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 	name := fmt.Sprintf("lsw-%s-%s", bottle.Name, hash())
 	log.Debug(name)
 
+	// TODO Remove when https://bugs.winehq.org/show_bug.cgi?id=59671 is fixed
+	shellScript := fmt.Sprintf(`wineserver -k 2>/dev/null || true && ln -sfn "%s" /opt/prefix/dosdevices/w: && wine cmd.exe /c "W: && %s"`, cwd, bottle.GetShell())
+
 	t := true
 	spec := specgen.SpecGenerator{
 		ContainerBasicConfig: specgen.ContainerBasicConfig{
-			Name:     name,
-			Command:  []string{"wine", bottle.GetShell()},
+			Name:    name,
+			Command: []string{"sh", "-c", shellScript},
+			// Command: []string{"wine", bottle.GetShell()},
 			Stdin:    &t,
 			Terminal: &t,
 		},

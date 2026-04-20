@@ -57,12 +57,16 @@ func createOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) 
 	userStr := fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 	log.Debug("user string", "userStr", userStr)
 
+	// TODO Remove when https://bugs.winehq.org/show_bug.cgi?id=59671 is fixed
+	shellScript := fmt.Sprintf(`wineserver -k 2>/dev/null || true && ln -sfn "%s" /opt/prefix/dosdevices/w: && wine cmd.exe /c "W: && %s"`, cwd, bottle.GetShell())
+
 	name := fmt.Sprintf("lsw-%s-%s", bottle.Name, hash())
 	createOpts := client.ContainerCreateOptions{
 		Name: name,
 		Config: &container.Config{
 			Image: image,
-			Cmd:   []string{"wine", bottle.GetShell()},
+			Cmd:   []string{"sh", "-c", shellScript},
+			// Cmd:   []string{"wine", bottle.GetShell()},
 			Env: []string{
 				"HOME=/opt/prefix", // Points HOME to the writable volume
 			},
