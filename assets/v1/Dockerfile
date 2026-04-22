@@ -3,6 +3,7 @@
 # The last version of powershell that is working with wine is: https://github.com/PowerShell/PowerShell/releases/tag/v6.2.5
 ARG POWERSHELL_VERSION="6.2.5"
 ARG XMAKE_VERSION="3.0.6" # https://github.com/xmake-io/xmake/releases/download/v3.0.6/xmake-v3.0.6.win64.zip
+ARG CMAKE_VERSION="4.3.2"
 ARG GIT_VERSION="2.52.0"
 ARG SEVENZIP_VERSION="2501"
 
@@ -17,6 +18,7 @@ LABEL lsw-image="true"
 ARG WINEPREFIX
 ARG POWERSHELL_VERSION
 ARG XMAKE_VERSION
+ARG CMAKE_VERSION
 ARG GIT_VERSION
 ARG SEVENZIP_VERSION
 
@@ -108,7 +110,22 @@ RUN \
     wine reg add "HKEY_CURRENT_USER\Software\Wine\DllOverrides" /v "vcruntime140_1" /t REG_SZ /d "native,builtin" /f && \
     wineserver -w && \
     echo "Testing cl.exe..." && \
-    wine cl.exe 2>&1 | grep "Microsoft"
+    wine cl.exe 2>&1 | grep "Microsoft" && \
+    echo "Compiling mock vswhere.exe..." && \
+    mkdir -p "${WINEPREFIX}/drive_c/Program Files (x86)/Microsoft Visual Studio/Installer" && \
+    echo '#include <stdio.h>' > vswhere.c && \
+    echo 'int main(int argc, char** argv) {' >> vswhere.c && \
+    echo '  printf("[\n  {\n");' >> vswhere.c && \
+    echo '  printf("    \"instanceId\": \"MSVCWine\",\n");' >> vswhere.c && \
+    echo '  printf("    \"installationPath\": \"C:\\\\\\\\Program Files\\\\\\\\MSVC\",\n");' >> vswhere.c && \
+    echo "  printf(\"    \\\"installationVersion\\\": \\\"\$VS_VER.0.0\\\",\\n\");" >> vswhere.c && \
+    echo '  printf("    \"displayName\": \"Visual Studio MSVC-Wine Mock\",\n");' >> vswhere.c && \
+    echo '  printf("    \"isPrerelease\": false\n");' >> vswhere.c && \
+    echo '  printf("  }\n]\n");' >> vswhere.c && \
+    echo '  return 0;' >> vswhere.c && \
+    echo '}' >> vswhere.c && \
+    wine cl.exe /nologo vswhere.c /Fe:"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" && \
+    wineserver -w
 
 # Install powershell
 RUN curl -L -o /tmp/powershell.zip https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/PowerShell-${POWERSHELL_VERSION}-win-x64.zip
@@ -117,6 +134,13 @@ RUN unzip /tmp/powershell.zip -d "${WINEPREFIX}/drive_c/Program Files/Powershell
 RUN wine-add-path "C:\Program Files\Powershell\6"
 RUN wineserver -w
 RUN echo 'if (Get-Module -Name PSReadLine) { Remove-Module -Name PSReadLine }' > "${WINEPREFIX}/drive_c/Program Files/Powershell/6/profile.ps1"
+
+# Install CMake
+RUN curl -L -o /tmp/cmake.zip https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-windows-x86_64.zip
+RUN 7z x /tmp/cmake.zip -o/tmp/cmake
+RUN mv "/tmp/cmake/cmake-${CMAKE_VERSION}-windows-x86_64" "${WINEPREFIX}/drive_c/Program Files/CMake"
+RUN wine-add-path "C:\Program Files\CMake\bin"
+RUN wineserver -w
 
 # Install xmake
 RUN curl -L -o /tmp/xmake.zip https://github.com/xmake-io/xmake/releases/download/v${XMAKE_VERSION}/xmake-v${XMAKE_VERSION}.win64.zip
