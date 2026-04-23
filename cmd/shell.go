@@ -35,7 +35,7 @@ func shellCmd() *cobra.Command {
 		Use:           "shell [bottle-name]",
 		Aliases:       []string{"s"},
 		Short:         "Enter an interactive shell in a Windows bottle",
-		Long:          `Specify a bottle name, or use the default bottle if configured.`,
+		Long:          `Specify a bottle name, or use the default bottle if configured. Only one current working directory can be mounted on a instance.y`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE:          runShellCommand,

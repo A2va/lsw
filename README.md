@@ -121,6 +121,8 @@ The v2, on the other hand, is a fully managed virtual machine provided by Incus.
 
 Generally speaking, v1 bottles are faster and use fewer resources, but installing and running software can be more challenging. This is also why we have decided to package some common development tools, such as MSVC, Xmake and rustup, in v1 bottles. For the v2 backend, however, you have to install these tools yourself.
 
+Currently, it is not possible to mount multiple directories when using the lsw shell command; only one directory can be mounted at a time. This limitation will be lifted in v1 once a Wine bug has been resolved, but it will remain in v2.
+
 ## How to resize a v2 bottle ?
 
 This is not possible to do it with lsw directly but you can use incus. First stop the bottle and execute:
