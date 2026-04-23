@@ -1,0 +1,37 @@
+name: Release
+
+# Trigger the workflow only when a tag starting with 'v' is pushed
+on:
+  push:
+    tags:
+      - "v*"
+
+# Required permissions to allow GoReleaser to create a GitHub Release and upload assets
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    # Take an older ubuntu to have better compatibility with all distributions
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 is required for GoReleaser to generate the changelog properly
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          # GITHUB_TOKEN is automatically provided by GitHub Actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
