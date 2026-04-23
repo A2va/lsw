@@ -84,6 +84,7 @@ func createSpec(bottle config.Bottle) (specgen.SpecGenerator, error) {
 			// Command: []string{"wine", bottle.GetShell()},
 			Stdin:    &t,
 			Terminal: &t,
+			Remove:   &t,
 		},
 		ContainerStorageConfig: specgen.ContainerStorageConfig{
 			Image:   image,

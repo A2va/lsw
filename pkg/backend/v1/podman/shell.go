@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"charm.land/log/v2"
 	"github.com/containers/podman/v6/pkg/api/handlers"
@@ -66,6 +68,9 @@ func Shell(bottle *config.Bottle, cmd string) error {
 		return err
 	}
 
+	ctx, stop := signal.NotifyContext(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
 	spec, err := createSpec(*bottle)
 	if err != nil {
 		return err
@@ -73,25 +78,37 @@ func Shell(bottle *config.Bottle, cmd string) error {
 
 	containerName := spec.Name
 
-	_, err = containers.CreateWithSpec(c, &spec, &containers.CreateOptions{})
-	if err != nil {
-		return err
-	}
-
-	err = containers.Start(c, containerName, &containers.StartOptions{})
-	if err != nil {
-		return err
-	}
-
 	defer func() {
 		t := true
 		containers.Stop(c, containerName, &containers.StopOptions{})
 		containers.Remove(c, containerName, &containers.RemoveOptions{Force: &t})
 	}()
 
+	_, err = containers.CreateWithSpec(ctx, &spec, &containers.CreateOptions{})
+	if err != nil {
+		return err
+	}
+
+	err = containers.Start(ctx, containerName, &containers.StartOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Non interactive
 	// Non interactive
 	if cmd != "" {
-		return execMethod(c, containerName, cmd)
+		errChan := make(chan error, 1)
+		go func() {
+			errChan <- execMethod(ctx, containerName, cmd)
+		}()
+
+		// Wait for either the command to finish or a signal to interrupt it
+		select {
+		case err := <-errChan:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 
 	attachReady := make(chan bool, 1)
@@ -102,8 +119,20 @@ func Shell(bottle *config.Bottle, cmd string) error {
 		attachErr <- attachMethod(c, containerName, attachReady)
 	}()
 
-	// Wait until Podman signals that it is actively listening
-	<-attachReady
-
-	return <-attachErr
+	// Wait until Podman signals that it is actively listening OR a signal is received
+	select {
+	case <-attachReady:
+		// Attached successfully, now wait for completion or a signal
+		select {
+		case err := <-attachErr:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	case err := <-attachErr:
+		// It failed before getting ready
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
