@@ -80,7 +80,8 @@ func createOptions(bottle config.Bottle) (client.ContainerCreateOptions, error) 
 			User:         userStr,
 		},
 		HostConfig: &container.HostConfig{
-			Mounts: mounts,
+			AutoRemove: true,
+			Mounts:     mounts,
 		},
 	}
 

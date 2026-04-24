@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"charm.land/log/v2"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -14,8 +16,8 @@ import (
 	"github.com/A2va/lsw/pkg/config"
 )
 
-func attachMethod(c *client.Client, nameOrID string) (client.HijackedResponse, error) {
-	res, err := c.ContainerAttach(context.Background(), nameOrID, client.ContainerAttachOptions{
+func attachMethod(ctx context.Context, c *client.Client, nameOrID string) (client.HijackedResponse, error) {
+	res, err := c.ContainerAttach(ctx, nameOrID, client.ContainerAttachOptions{
 		Stream: true,
 		Stdin:  true,
 		Stdout: true,
@@ -29,7 +31,7 @@ func attachMethod(c *client.Client, nameOrID string) (client.HijackedResponse, e
 	return res.HijackedResponse, nil
 }
 
-func execMethod(c *client.Client, nameOrID string, cmd string) error {
+func execMethod(ctx context.Context, c *client.Client, nameOrID string, cmd string) error {
 
 	command := []string{
 		"wine",
@@ -45,12 +47,12 @@ func execMethod(c *client.Client, nameOrID string, cmd string) error {
 		// TTY:          true,
 	}
 
-	execIDResp, err := c.ExecCreate(context.Background(), nameOrID, execConfig)
+	execIDResp, err := c.ExecCreate(ctx, nameOrID, execConfig)
 	if err != nil {
 		return err
 	}
 
-	attachResp, err := c.ExecAttach(context.Background(), execIDResp.ID, client.ExecAttachOptions{
+	attachResp, err := c.ExecAttach(ctx, execIDResp.ID, client.ExecAttachOptions{
 		// TTY: true,
 	})
 	if err != nil {
@@ -72,6 +74,9 @@ func Shell(bottle *config.Bottle, cmd string) error {
 		return err
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
 	createOpts, err := createOptions(*bottle)
 	if err != nil {
 		return err
@@ -79,12 +84,12 @@ func Shell(bottle *config.Bottle, cmd string) error {
 
 	containerName := createOpts.Name
 
-	_, err = c.ContainerCreate(context.Background(), createOpts)
+	_, err = c.ContainerCreate(ctx, createOpts)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.ContainerStart(context.Background(), containerName, client.ContainerStartOptions{})
+	_, err = c.ContainerStart(ctx, containerName, client.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -99,10 +104,21 @@ func Shell(bottle *config.Bottle, cmd string) error {
 
 	// Non interactive
 	if cmd != "" {
-		return execMethod(c, containerName, cmd)
+		errChan := make(chan error, 1)
+		go func() {
+			errChan <- execMethod(ctx, c, containerName, cmd)
+		}()
+
+		// Wait for command completion OR a system signal
+		select {
+		case err := <-errChan:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 
-	res, err := attachMethod(c, containerName)
+	res, err := attachMethod(ctx, c, containerName)
 	if err != nil {
 		return err
 	}
@@ -132,7 +148,10 @@ func Shell(bottle *config.Bottle, cmd string) error {
 		}
 	}()
 
-	<-outputDone
-
-	return nil
+	select {
+	case err := <-outputDone:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
