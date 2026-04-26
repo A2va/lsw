@@ -11,7 +11,7 @@ import (
 
 // Find the first available provider
 func findFirstAvailableProvider() string {
-	binaries := []string{"docker", "podman"}
+	binaries := []string{"podman", "docker"}
 	var selectedBin string
 
 	// Find the first available binary in the system PATH
