@@ -174,20 +174,21 @@ func buildImage(c *client.Client) error {
 	// if the build was succesful.
 	noCache := false
 	remove := true
-	squash := true
+	// squash := true
 
 	if version.Version == "dev" {
 		noCache = false
 		remove = false
-		squash = false
+		// squash = false
 	}
 
 	buildOptions := client.ImageBuildOptions{
 		NoCache:     noCache,
 		Remove:      remove,
 		ForceRemove: remove,
-		Squash:      squash,
-		Tags:        []string{targetTag},
+		// FIXME For now disable squash because it is experimental
+		// Squash:      squash,
+		Tags: []string{targetTag},
 	}
 
 	dockerfilePath, err := getDockerfile()
