@@ -80,7 +80,7 @@ compatibility.`,
 			cfg := config.Get()
 
 			name, _ := cmd.Flags().GetString("name")
-			if _, found := config.GetBottle(name); found {
+			if _, found := config.GetBottle(name); found && name != "" {
 				return fmt.Errorf("bottle with name '%s' already exists", name)
 			}
 			if name == "" {
@@ -114,7 +114,7 @@ Windows compatibility but uses more resources than v1.`,
 			cfg := config.Get()
 
 			name, _ := cmd.Flags().GetString("name")
-			if _, found := config.GetBottle(name); found {
+			if _, found := config.GetBottle(name); found && name != "" {
 				return fmt.Errorf("bottle with name '%s' already exists", name)
 			}
 			if name == "" {

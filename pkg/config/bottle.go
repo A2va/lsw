@@ -26,11 +26,6 @@ type BottleStatus struct {
 }
 
 func GetBottle(name string) (*Bottle, bool) {
-	// TODO Investigate why I did this, was there a bug ?
-	// if name == "" {
-	// 	return nil, false
-	// }
-
 	cfg := Get()
 
 	var bottleName string
