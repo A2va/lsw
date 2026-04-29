@@ -16,68 +16,94 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/moby/moby/client"
 	"github.com/moby/term"
+	"github.com/plus3it/gorecurcopy"
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
 )
 
-func getDockerfile() (string, error) {
-	log.Debug("get dockerfile")
+func copyAssetsToDir(d string) error {
+	log.Debug("temp directory", "dir", d)
 
 	version := config.GetVersion()
-	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/v1/Dockerfile", version.Commit)
-
-	var dockerfilePath string
 	if version.Version == "dev" {
 		wd, _ := os.Getwd()
-		dockerfilePath = path.Join(wd, "assets", "v1", "Dockerfile")
+		gorecurcopy.CopyDirectory(path.Join(wd, "assets", "v1"), d)
 	} else {
-		err := cache.Add("v1/Dockerfile.v1", url)
-		if err != nil {
-			return "", err
-		}
-
-		item, err := cache.Get("v1/Dockerfile.v1")
-		if err != nil {
-			return "", err
-		}
-		dockerfilePath = item.Path
+		cache.CopyFromCache(d, []string{"v1/Dockerfile.v1", "v1/wine-add-path.sh", "v1/vswhere.c"})
 	}
 
-	log.Debug("file path", "dockerfile", dockerfilePath)
-
-	return dockerfilePath, nil
+	return nil
 }
 
-func createBuildContext(dockerfilePath string) (io.Reader, error) {
-	log.Debug("create build context")
+func createBuildDir() (string, error) {
+	tmpDir, err := os.MkdirTemp("", "lsw-docker")
+	if err != nil {
+		return "", err
+	}
 
-	// Read the Dockerfile content
-	body, err := os.ReadFile(dockerfilePath)
+	version := config.GetVersion()
+	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/", version.Commit)
+
+	if version.Version != "dev" {
+		filesToCache := []string{"v1/Dockerfile.v1", "v1/vswhere.c", "v1/wine-add-apth.sh"}
+
+		for _, file := range filesToCache {
+			err := cache.Add(file, url+file)
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+
+	err = copyAssetsToDir(tmpDir)
+	if err != nil {
+		return "", err
+	}
+
+	return tmpDir, nil
+}
+
+func createBuildContext() (io.Reader, error) {
+	tmpDir, err := createBuildDir()
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a buffer to write our archive to
+	log.Debug(tmpDir)
+
+	files, err := os.ReadDir(tmpDir)
+	if err != nil {
+		return nil, err
+	}
+
 	buf := new(bytes.Buffer)
 	tw := tar.NewWriter(buf)
 	defer tw.Close()
 
-	// Create a header for the "Dockerfile" file inside the tar
-	header := &tar.Header{
-		Name:    "Dockerfile", // The name the daemon will see
-		Size:    int64(len(body)),
-		Mode:    0644,
-		ModTime: time.Now(),
-	}
+	for _, file := range files {
 
-	// Write the header and the content
-	if err := tw.WriteHeader(header); err != nil {
-		return nil, err
-	}
-	if _, err := tw.Write(body); err != nil {
-		return nil, err
+		body, err := os.ReadFile(path.Join(tmpDir, file.Name()))
+		if err != nil {
+			return nil, err
+		}
+
+		// Create a header for each files inside the tar
+		header := &tar.Header{
+			Name:    file.Name(),
+			Size:    int64(len(body)),
+			Mode:    0644,
+			ModTime: time.Now(),
+		}
+
+		if err := tw.WriteHeader(header); err != nil {
+			return nil, err
+		}
+
+		if _, err := tw.Write(body); err != nil {
+			return nil, err
+		}
 	}
 
 	return buf, nil
@@ -183,6 +209,7 @@ func buildImage(c *client.Client) error {
 	}
 
 	buildOptions := client.ImageBuildOptions{
+		Dockerfile:  "Dockerfile.v1",
 		NoCache:     noCache,
 		Remove:      remove,
 		ForceRemove: remove,
@@ -191,12 +218,7 @@ func buildImage(c *client.Client) error {
 		Tags: []string{targetTag},
 	}
 
-	dockerfilePath, err := getDockerfile()
-	if err != nil {
-		utils.Panic("", err)
-	}
-
-	buildContext, err := createBuildContext(dockerfilePath)
+	buildContext, err := createBuildContext()
 	if err != nil {
 		return err
 	}
