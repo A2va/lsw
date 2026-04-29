@@ -14,11 +14,26 @@ import (
 	"github.com/containers/podman/v6/pkg/bindings/containers"
 	"github.com/containers/podman/v6/pkg/bindings/images"
 	"github.com/containers/podman/v6/pkg/domain/entities/types"
+	"github.com/plus3it/gorecurcopy"
 
 	"github.com/A2va/lsw/pkg/cache"
 	"github.com/A2va/lsw/pkg/config"
 	"github.com/A2va/lsw/pkg/utils"
 )
+
+func copyBuildAssetsToDir(d string) error {
+	log.Debug("temp directory", "dir", d)
+
+	version := config.GetVersion()
+	if version.Version == "dev" {
+		wd, _ := os.Getwd()
+		gorecurcopy.CopyDirectory(path.Join(wd, "assets", "v1"), d)
+	} else {
+		cache.CopyFromCache(d, []string{"v1/Dockerfile.v1", "v1/wine-add-path.sh", "v1/vswhere.c"})
+	}
+
+	return nil
+}
 
 func getDockerfile() (string, error) {
 	log.Debug("get dockerfile")
@@ -124,6 +139,34 @@ func pruneOldImages(c context.Context) error {
 
 }
 
+func createBuildDir() (string, error) {
+	tmpDir, err := os.MkdirTemp("", "lsw-podman")
+	if err != nil {
+		return "", err
+	}
+
+	version := config.GetVersion()
+	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/", version.Commit)
+
+	if version.Version != "dev" {
+		filesToCache := []string{"v1/Dockerfile.v1", "v1/vswhere.c", "v1/wine-add-apth.sh"}
+
+		for _, file := range filesToCache {
+			err := cache.Add(file, url+file)
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+
+	err = copyBuildAssetsToDir(tmpDir)
+	if err != nil {
+		return "", err
+	}
+
+	return tmpDir, nil
+}
+
 func buildImage(c context.Context) error {
 	version := config.GetVersion()
 	targetTag := fmt.Sprintf("lsw-v1:%s", version.ShortCommit)
@@ -157,9 +200,9 @@ func buildImage(c context.Context) error {
 		squash = false
 	}
 
-	dockerfilePath, err := getDockerfile()
+	buildDir, err := createBuildDir()
 	if err != nil {
-		utils.Panic("", err)
+		return err
 	}
 
 	var outWriter io.Writer = io.Discard
@@ -171,12 +214,9 @@ func buildImage(c context.Context) error {
 		errWriter = os.Stderr
 	}
 
-	contextDir := path.Dir(dockerfilePath)
-	dockerfileName := path.Base(dockerfilePath)
-
 	buildOptions := types.BuildOptions{
 		BuildOptions: buildahDefine.BuildOptions{
-			ContextDirectory:        contextDir,
+			ContextDirectory:        buildDir,
 			NoCache:                 noCache,
 			RemoveIntermediateCtrs:  true,
 			ForceRmIntermediateCtrs: true,
@@ -195,7 +235,7 @@ func buildImage(c context.Context) error {
 	}
 	log.Debug("build options", "opts", buildOptions)
 
-	_, err = images.Build(c, []string{dockerfileName}, buildOptions)
+	_, err = images.Build(c, []string{"Dockerfile.v1"}, buildOptions)
 	if err != nil {
 		return err
 	}

@@ -22,20 +22,8 @@ ARG CMAKE_VERSION
 ARG GIT_VERSION
 ARG SEVENZIP_VERSION
 
-RUN echo '#!/bin/bash' > /usr/bin/wine-add-path && \
-    echo 'set -e' >> /usr/bin/wine-add-path && \
-    echo 'NEW_ENTRY="$1"' >> /usr/bin/wine-add-path && \
-    echo 'KEY="HKEY_CURRENT_USER\Environment"' >> /usr/bin/wine-add-path && \
-    echo 'CURRENT=$(wine reg query "$KEY" /v PATH 2>/dev/null | tr -d "\r" | grep "REG_EXPAND_SZ" | sed "s/^.*REG_EXPAND_SZ\s*//")' >> /usr/bin/wine-add-path && \
-    echo 'if [ -z "$CURRENT" ]; then' >> /usr/bin/wine-add-path && \
-    echo '  FINAL="$NEW_ENTRY"' >> /usr/bin/wine-add-path && \
-    echo 'else' >> /usr/bin/wine-add-path && \
-    echo '  FINAL="$CURRENT;$NEW_ENTRY"' >> /usr/bin/wine-add-path && \
-    echo 'fi' >> /usr/bin/wine-add-path && \
-    echo 'wine reg add "$KEY" /v PATH /t REG_EXPAND_SZ /d "$FINAL" /f' >> /usr/bin/wine-add-path && \
-    echo 'wineserver -w' >> /usr/bin/wine-add-path && \
-    chmod +x /usr/bin/wine-add-path
-
+COPY wine-add-path.sh /usr/bin/wine-add-path
+RUN chmod +x /usr/bin/wine-add-path
 
 # ---- System dependencies (build-time) ----
 RUN dnf install -y \
@@ -70,6 +58,9 @@ RUN wineboot --init && \
 WORKDIR /tmp
 RUN git clone https://github.com/mstorsjo/msvc-wine
 WORKDIR /tmp/msvc-wine
+
+# Copy the vswhere C template into the current WORKDIR
+COPY vswhere.c ./vswhere.c
 
 # Download + install MSVC inside the prefix
 RUN mkdir -p "${WINEPREFIX}/drive_c/Program Files/MSVC"
@@ -113,19 +104,10 @@ RUN \
     wine cl.exe 2>&1 | grep "Microsoft" && \
     echo "Compiling mock vswhere.exe..." && \
     mkdir -p "${WINEPREFIX}/drive_c/Program Files (x86)/Microsoft Visual Studio/Installer" && \
-    echo '#include <stdio.h>' > vswhere.c && \
-    echo 'int main(int argc, char** argv) {' >> vswhere.c && \
-    echo '  printf("[\n  {\n");' >> vswhere.c && \
-    echo '  printf("    \"instanceId\": \"MSVCWine\",\n");' >> vswhere.c && \
-    echo '  printf("    \"installationPath\": \"C:\\\\\\\\Program Files\\\\\\\\MSVC\",\n");' >> vswhere.c && \
-    echo "  printf(\"    \\\"installationVersion\\\": \\\"\$VS_VER.0.0\\\",\\n\");" >> vswhere.c && \
-    echo '  printf("    \"displayName\": \"Visual Studio MSVC-Wine Mock\",\n");' >> vswhere.c && \
-    echo '  printf("    \"isPrerelease\": false\n");' >> vswhere.c && \
-    echo '  printf("  }\n]\n");' >> vswhere.c && \
-    echo '  return 0;' >> vswhere.c && \
-    echo '}' >> vswhere.c && \
+    sed -i "s/__VS_VER__/$VS_VER/g" vswhere.c && \
     wine cl.exe /nologo vswhere.c /Fe:"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" && \
     wineserver -w
+
 
 # Install powershell
 RUN curl -L -o /tmp/powershell.zip https://github.com/PowerShell/PowerShell/releases/download/v${POWERSHELL_VERSION}/PowerShell-${POWERSHELL_VERSION}-win-x64.zip
