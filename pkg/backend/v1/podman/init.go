@@ -29,38 +29,10 @@ func copyBuildAssetsToDir(d string) error {
 		wd, _ := os.Getwd()
 		gorecurcopy.CopyDirectory(path.Join(wd, "assets", "v1"), d)
 	} else {
-		cache.CopyFromCache(d, []string{"v1/Dockerfile.v1", "v1/wine-add-path.sh", "v1/vswhere.c"})
+		cache.CopyFromCache(d, []string{"v1/Dockerfile.v1", "v1/wine-add-path.sh", "v1/vswhere.c", "v1/setup-msvc.sh"})
 	}
 
 	return nil
-}
-
-func getDockerfile() (string, error) {
-	log.Debug("get dockerfile")
-
-	version := config.GetVersion()
-	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/v1/Dockerfile", version.Commit)
-
-	var dockerfilePath string
-	if version.Version == "dev" {
-		wd, _ := os.Getwd()
-		dockerfilePath = path.Join(wd, "assets", "v1", "Dockerfile")
-	} else {
-		err := cache.Add("v1/Dockerfile.v1", url)
-		if err != nil {
-			return "", err
-		}
-
-		item, err := cache.Get("v1/Dockerfile.v1")
-		if err != nil {
-			return "", err
-		}
-		dockerfilePath = item.Path
-	}
-
-	log.Debug("file path", "dockerfile", dockerfilePath)
-
-	return dockerfilePath, nil
 }
 
 // Delete running containers and remove old images
@@ -149,7 +121,7 @@ func createBuildDir() (string, error) {
 	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/", version.Commit)
 
 	if version.Version != "dev" {
-		filesToCache := []string{"v1/Dockerfile.v1", "v1/vswhere.c", "v1/wine-add-apth.sh"}
+		filesToCache := []string{"v1/Dockerfile.v1", "v1/vswhere.c", "v1/wine-add-apth.sh", "v1/setup-msvc.sh"}
 
 		for _, file := range filesToCache {
 			err := cache.Add(file, url+file)
