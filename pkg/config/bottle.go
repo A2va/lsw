@@ -13,9 +13,9 @@ type Bottle struct {
 	Shell      string `toml:"shell"`
 	V1Provider string `toml:"v1_provider"`
 	// Permanently mounted folder (absolute path)
-	Mounts []string
+	Mounts []string `toml:"mounts"`
 	// the plain text password for a v2 vm
-	Password string
+	Password string `toml:"password"`
 }
 
 type BottleStatus struct {
