@@ -4,6 +4,7 @@
 ARG POWERSHELL_VERSION="6.2.5"
 ARG XMAKE_VERSION="3.0.6" # https://github.com/xmake-io/xmake/releases/download/v3.0.6/xmake-v3.0.6.win64.zip
 ARG CMAKE_VERSION="4.3.2"
+ARG NINJA_VERSION="1.12.1"
 ARG GIT_VERSION="2.52.0"
 ARG SEVENZIP_VERSION="2501"
 
@@ -19,6 +20,7 @@ ARG WINEPREFIX
 ARG POWERSHELL_VERSION
 ARG XMAKE_VERSION
 ARG CMAKE_VERSION
+ARG NINJA_VERSION
 ARG GIT_VERSION
 ARG SEVENZIP_VERSION
 
@@ -91,6 +93,13 @@ RUN curl -L -o /tmp/cmake.zip https://github.com/Kitware/CMake/releases/download
 RUN 7z x /tmp/cmake.zip -o/tmp/cmake
 RUN mv "/tmp/cmake/cmake-${CMAKE_VERSION}-windows-x86_64" "${WINEPREFIX}/drive_c/Program Files/CMake"
 RUN wine-add-path "C:\Program Files\CMake\bin"
+RUN wineserver -w
+
+# Install Ninja
+RUN curl -L -o /tmp/ninja.zip https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-win.zip
+RUN mkdir -p "${WINEPREFIX}/drive_c/Program Files/Ninja"
+RUN unzip /tmp/ninja.zip -d "${WINEPREFIX}/drive_c/Program Files/Ninja" ||[ $? -eq 1 ]
+RUN wine-add-path "C:\Program Files\Ninja"
 RUN wineserver -w
 
 # Install xmake
