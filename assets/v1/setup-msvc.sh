@@ -150,9 +150,38 @@ done
 # Registry Edit
 # =================================================================
 
-wine reg add "HKEY_CURRENT_USER\Environment" /v VSINSTALLDIR /t REG_SZ /d "$VS_INSTALL_DIR" /f
-wine reg add "HKEY_CURRENT_USER\Environment" /v VisualStudioVersion /t REG_SZ /d "$VS_VER" /f
+echo "Configuring MSVC programmatic discovery..."
+
+# 1. Create the default version file that cc-rs reads to find the VC directory
+BAT_DIR="${WINEPREFIX}/drive_c/Program Files/MSVC/VC/Auxiliary/Build"
+mkdir -p "$BAT_DIR"
+echo "$MSVC_VER" > "$BAT_DIR/Microsoft.VCToolsVersion.default.txt"
+sed -i 's/$/\r/' "$BAT_DIR/Microsoft.VCToolsVersion.default.txt"
+
+# 2. Add Windows SDK paths to the Registry
+# (KitsRoot10 is used for UCRT, v10.0 InstallationFolder is used for Windows API UM libs)
+wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Kits\Installed Roots" /v KitsRoot10 /t REG_SZ /d "$SDK_BASE\\" /f
+wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots" /v KitsRoot10 /t REG_SZ /d "$SDK_BASE\\" /f
+
+wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0" /v InstallationFolder /t REG_SZ /d "$SDK_BASE\\" /f
+wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0" /v InstallationFolder /t REG_SZ /d "$SDK_BASE\\" /f
+
+wine reg add "HKEY_CURRENT_USER\Environment" /v VCToolsInstallDir /t REG_SZ /d "$MSVC_DIR\\" /f
+
+# 3. Create a dummy MSBuild.exe
+# find-msvc-tools relies on the existence of MSBuild.exe to verify the VS installation version
+# Without this, find_vs_version() will abort early.
+# mkdir -p "${WINEPREFIX}/drive_c/Program Files/MSVC/MSBuild/Current/Bin"
+# echo "dummy" > "${WINEPREFIX}/drive_c/Program Files/MSVC/MSBuild/Current/Bin/MSBuild.exe"
+# mkdir -p "${WINEPREFIX}/drive_c/Program Files/MSVC/MSBuild/15.0/Bin"
+# echo "dummy" > "${WINEPREFIX}/drive_c/Program Files/MSVC/MSBuild/15.0/Bin/MSBuild.exe"
+
+# 4. Legacy VS Registry keys (Used by older tools and CMake fallbacks)
 wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\SxS\VS7" /v "$VS_VER" /t REG_SZ /d "$VS_INSTALL_DIR" /f
+wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\SxS\VS7" /v "$VS_VER" /t REG_SZ /d "$VS_INSTALL_DIR" /f
+
+wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSBuild\ToolsVersions\\$VS_VER" /v "MSBuildToolsPath" /t REG_SZ /d "$VS_INSTALL_DIR\MSBuild\Current\Bin\\" /f
+wine reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\MSBuild\ToolsVersions\\$VS_VER" /v "MSBuildToolsPath" /t REG_SZ /d "$VS_INSTALL_DIR\MSBuild\Current\Bin\\" /f
 
 # =================================================================
 # POLYFILL ROBOCOPY.EXE
