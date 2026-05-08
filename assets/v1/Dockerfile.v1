@@ -125,8 +125,18 @@ RUN wine-add-path "C:\Program Files\7-Zip"
 # Install rustup
 # Pin to rustup 1.28.2 which is known to work in Wine
 # RUN curl -L -o /tmp/rustup-init.exe https://win.rustup.rs/x86_64
+ENV CARGO_HOME="C:\users\root\.cargo"
+ENV RUSTUP_HOME="C:\users\root\.rustup"
 RUN curl -L -o /tmp/rustup-init.exe https://static.rust-lang.org/rustup/archive/1.28.2/x86_64-pc-windows-msvc/rustup-init.exe
 RUN wine Z:/tmp/rustup-init.exe -vy
+RUN cd "${WINEPREFIX}/drive_c/users/root/.cargo/bin" && \
+    for f in *.exe*; do \
+        [ "$f" = "rustup.exe" ] && continue; \
+        clean="${f%%.exe*}.exe"; \
+        rm -f -- "$f"; \
+        ln -sf rustup.exe "$clean"; \
+    done
+RUN wine rustup default stable
 RUN wine rustup set auto-self-update disable
 RUN wineserver -w
 
@@ -178,6 +188,9 @@ ENV WINEDEBUG=-all
 # ENV WINEDEBUG=+loaddll
 ENV XDG_RUNTIME_DIR=/tmp
 ENV LANG=en_US.UTF-8
+
+ENV CARGO_HOME="C:\users\root\.cargo"
+ENV RUSTUP_HOME="C:\users\root\.rustup"
 
 WORKDIR /work
 
