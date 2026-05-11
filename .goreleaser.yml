@@ -14,7 +14,14 @@ builds:
     flags:
       - -tags=containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper
 archives:
-  - format: binary
+  - format: tar.gz
+    # Optional: This makes the extracted binary strictly named 'lsw'
+    # instead of 'lsw_0.1.0-pre1_linux_amd64'
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
 checksum:
   name_template: "checksums.txt"
 snapshot:
