@@ -121,7 +121,7 @@ func createBuildDir() (string, error) {
 	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/", version.Commit)
 
 	if version.Version != "dev" {
-		filesToCache := []string{"v1/Dockerfile.v1", "v1/vswhere.c", "v1/wine-add-apth.sh", "v1/setup-msvc.sh"}
+		filesToCache := []string{"v1/Dockerfile.v1", "v1/vswhere.c", "v1/wine-add-path.sh", "v1/setup-msvc.sh"}
 
 		for _, file := range filesToCache {
 			err := cache.Add(file, url+file)
