@@ -29,6 +29,9 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history for all branches and tags
+          fetch-tags: true # Explicitly ensures tags are pulled
 
       - name: Set up Go
         uses: actions/setup-go@v5
