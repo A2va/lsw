@@ -99,12 +99,14 @@ func pruneOldImages(c context.Context) error {
 		}
 	}
 
-	log.Debug("remove old images", "id", imagesToRemove)
-	t := true
-	fa := false
-	_, errs := images.Remove(c, imagesToRemove, &images.RemoveOptions{Force: &t, NoPrune: &fa})
-	if len(errs) > 0 {
-		return errors.Join(errs...)
+	if len(imagesToRemove) > 0 {
+		log.Debug("remove old images", "id", imagesToRemove)
+		t := true
+		fa := false
+		_, errs := images.Remove(c, imagesToRemove, &images.RemoveOptions{Force: &t, NoPrune: &fa})
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
 	}
 
 	return nil
