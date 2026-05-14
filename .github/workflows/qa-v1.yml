@@ -48,9 +48,11 @@ jobs:
         run: |
           podman --version
           # Force-create the hardcoded directory your Go code expects
-          sudo mkdir -p /run/user/1001/podman
-          sudo chown -R 1001:1001 /run/user/1001
-          export XDG_RUNTIME_DIR=/run/user/1001
+          # sudo mkdir -p /run/user/1001/podman
+          # sudo chown -R 1001:1001 /run/user/1001
+          # export XDG_RUNTIME_DIR=/run/user/1001
+          # echo "XDG_RUNTIME_DIR=/run/user/1001" >> $GITHUB_ENV
+          # echo "DOCKER_HOST=unix:///run/user/1001/podman/podman.sock" >> $GITHUB_ENV
 
           # Start the Podman API service
           podman system service -t 0 &
