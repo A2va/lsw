@@ -137,6 +137,49 @@ jobs:
           cat "$FILE_PATH"
           echo "File successfully found on host."
 
+      # ── Verify Build Tools ────────────────────────────────────────────────
+      - name: "[QA] Cargo: Init and Build"
+        run: |
+          mkdir -p hello-cargo
+          lsw shell qa-bottle --cmd "cd hello-cargo && cargo init && cargo build"
+
+          # Verify
+          if [ ! -f "hello-cargo/target/debug/hello-cargo.exe" ]; then
+            echo "Cargo build failed"
+            exit 1
+          fi
+          echo "Cargo build verified."
+
+      - name: "[QA] Xmake: Create and Build"
+        run: |
+          lsw shell qa-bottle --cmd "xmake create -l c++ -t console hello-xmake && cd hello-xmake && xmake -y"
+
+          # Verify
+          if [ ! -f "hello-xmake/build/windows/x64/release/hello-xmake.exe" ]; then
+            echo "Xmake build failed"
+            exit 1
+          fi
+          echo "Xmake build verified."
+
+      - name: "[QA] CMake + Ninja: Build"
+        run: |
+          # CMake doesn't have an 'init' command, so we provide a minimal boilerplate
+          mkdir -p hello-cmake
+          echo 'int main() { return 0; }' > hello-cmake/main.cpp
+          echo 'cmake_minimum_required(VERSION 3.10)' > hello-cmake/CMakeLists.txt
+          echo 'project(HelloCMake)' >> hello-cmake/CMakeLists.txt
+          echo 'add_executable(hello_cmake main.cpp)' >> hello-cmake/CMakeLists.txt
+
+          # Build
+          lsw shell qa-bottle --cmd "cd hello-cmake && cmake -B build && cmake --build build"
+
+          # Verify
+          if [ ! -f "hello-cmake/build/Debug/hello_cmake.exe" ]; then
+            echo "CMake build failed"
+            exit 1
+          fi
+          echo "CMake build verified."
+
       # ── Remove ─────────────────────────────────────────────────────────────
       - name: "[QA] lsw remove — remove bottle and its resources"
         run: lsw remove qa-bottle
