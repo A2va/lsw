@@ -1,7 +1,6 @@
 package podman
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -48,9 +47,9 @@ func execMethod(c context.Context, nameOrID string, cmd string) error {
 	}
 
 	opts := new(containers.ExecStartAndAttachOptions)
-	opts.WithInputStream(*bufio.NewReader(os.Stdin))
 	opts.WithOutputStream(os.Stdout)
-	opts.WithAttachInput(true)
+	opts.WithErrorStream(os.Stderr)
+
 	opts.WithAttachOutput(true)
 	opts.WithAttachError(true)
 
