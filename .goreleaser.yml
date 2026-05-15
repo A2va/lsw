@@ -16,10 +16,9 @@ builds:
       - -toolexec={{ .Env.PWD }}/.bin/errtrace
       - -tags=containers_image_openpgp,exclude_graphdriver_btrfs,exclude_graphdriver_devicemapper
 archives:
-  - format: tar.gz
-    # Optional: This makes the extracted binary strictly named 'lsw'
-    # instead of 'lsw_0.1.0-pre1_linux_amd64'
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  # Optional: This makes the extracted binary strictly named 'lsw'
+  # instead of 'lsw_0.1.0-pre1_linux_amd64'
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
       - LICENSE
@@ -27,7 +26,7 @@ archives:
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
