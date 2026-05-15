@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"regexp"
 	"time"
 
+	"braces.dev/errtrace"
 	log "charm.land/log/v2"
 	"github.com/charmbracelet/colorprofile"
 	"github.com/spf13/cobra"
@@ -94,15 +96,17 @@ func (cmd *rootCmd) Execute(args []string) {
 	if err := cmd.cmd.Execute(); err != nil {
 		code := 1
 		msg := "command failed"
+		loggedErr := err
 		if eerr, ok := err.(*exitError); ok {
 			code = eerr.code
 			if eerr.details != "" {
 				msg = eerr.details
 			}
+			loggedErr = errors.Unwrap(eerr)
 		}
 		cmd.spinner.Stop()
 
-		log.Error(msg, "err", err)
+		log.Errorf("%s, err: %+v", msg, errtrace.Wrap(loggedErr))
 		fmt.Printf("%s, err: %s\n", msg, err)
 		cmd.exit(code)
 	}

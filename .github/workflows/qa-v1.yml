@@ -81,6 +81,7 @@ jobs:
           args: build --snapshot --clean --single-target
         env:
           CGO_ENABLED: "1"
+          PWD: ${{ github.workspace }}
 
       # ── Path Configuration ─────────────────────────────────────────────────
       - name: Prepare lsw binary

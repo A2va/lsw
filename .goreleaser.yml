@@ -3,16 +3,18 @@ version: 2
 before:
   hooks:
     - go mod download
+    - go build -o .bin/errtrace braces.dev/errtrace/cmd/errtrace
 builds:
   - env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos:
       - linux
     goarch:
       - amd64
       # - arm64
     flags:
-      - -tags=containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper
+      - -toolexec={{ .Env.PWD }}/.bin/errtrace
+      - -tags=containers_image_openpgp,exclude_graphdriver_btrfs,exclude_graphdriver_devicemapper
 archives:
   - format: tar.gz
     # Optional: This makes the extracted binary strictly named 'lsw'

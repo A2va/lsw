@@ -3,6 +3,7 @@ module github.com/A2va/lsw
 go 1.25.8
 
 require (
+	braces.dev/errtrace v0.4.0
 	charm.land/log/v2 v2.0.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/charmbracelet/colorprofile v0.4.3
