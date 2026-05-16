@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"charm.land/log/v2"
@@ -21,6 +22,14 @@ import (
 	"github.com/A2va/lsw/pkg/utils"
 )
 
+func getDockerfile() string {
+	_, exist := os.LookupEnv("_LSW_CI")
+	if exist {
+		return "v1/Dockerfile.ci"
+	}
+	return "v1/Dockerfile.v1"
+}
+
 func copyBuildAssetsToDir(d string) error {
 	log.Debug("temp directory", "dir", d)
 
@@ -29,7 +38,7 @@ func copyBuildAssetsToDir(d string) error {
 		wd, _ := os.Getwd()
 		gorecurcopy.CopyDirectory(path.Join(wd, "assets", "v1"), d)
 	} else {
-		cache.CopyFromCache(d, []string{"v1/Dockerfile.v1", "v1/wine-add-path.sh", "v1/vswhere.c", "v1/setup-msvc.sh"})
+		cache.CopyFromCache(d, []string{getDockerfile(), "v1/wine-add-path.sh", "v1/vswhere.c", "v1/setup-msvc.sh"})
 	}
 
 	return nil
@@ -123,7 +132,7 @@ func createBuildDir() (string, error) {
 	url := fmt.Sprintf("https://raw.githubusercontent.com/A2va/lsw/%s/assets/", version.Commit)
 
 	if version.Version != "dev" {
-		filesToCache := []string{"v1/Dockerfile.v1", "v1/vswhere.c", "v1/wine-add-path.sh", "v1/setup-msvc.sh"}
+		filesToCache := []string{getDockerfile(), "v1/vswhere.c", "v1/wine-add-path.sh", "v1/setup-msvc.sh"}
 
 		for _, file := range filesToCache {
 			err := cache.Add(file, url+file)
@@ -209,7 +218,7 @@ func buildImage(c context.Context) error {
 	}
 	log.Debug("build options", "opts", buildOptions)
 
-	_, err = images.Build(c, []string{"Dockerfile.v1"}, buildOptions)
+	_, err = images.Build(c, []string{filepath.Base(getDockerfile())}, buildOptions)
 	if err != nil {
 		return err
 	}
