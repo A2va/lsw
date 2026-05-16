@@ -1,0 +1,229 @@
+name: QA - Cross Commit Build Compatibility
+
+on:
+  pull_request:
+    branches: [next]
+  workflow_dispatch:
+
+jobs:
+  cross-commit-build:
+    name: Cross Commit Build (${{ matrix.provider }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [docker, podman]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Docker
+        if: matrix.provider == 'docker'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Set up Podman
+        if: matrix.provider == 'podman'
+        run: |
+          podman --version
+
+          podman system service -t 0 &
+
+          while [ ! -S "/run/user/1001/podman/podman.sock" ]; do
+            echo "Waiting for podman socket..."
+            sleep 1
+          done
+
+          echo "Podman socket ready."
+
+      - name: Set up GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          install-only: true
+
+      - name: Determine commits
+        id: commits
+        run: |
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          PREVIOUS_COMMIT=$(git rev-parse HEAD~1)
+
+          CURRENT_SHORT=$(git rev-parse --short=7 HEAD)
+          PREVIOUS_SHORT=$(git rev-parse --short=7 HEAD~1)
+
+          echo "current=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
+          echo "previous=$PREVIOUS_COMMIT" >> $GITHUB_OUTPUT
+
+          echo "current_short=$CURRENT_SHORT" >> $GITHUB_OUTPUT
+          echo "previous_short=$PREVIOUS_SHORT" >> $GITHUB_OUTPUT
+
+          echo "Current commit:        $CURRENT_COMMIT"
+          echo "Previous commit:       $PREVIOUS_COMMIT"
+          echo "Current short commit:  $CURRENT_SHORT"
+          echo "Previous short commit: $PREVIOUS_SHORT"
+
+      - name: Build previous commit with GoReleaser
+        run: |
+          git checkout ${{ steps.commits.outputs.previous }}
+
+          goreleaser build \
+            --snapshot \
+            --clean \
+            --single-target
+
+          mkdir -p /tmp/lsw-builds/previous
+          find dist -type f -name lsw -exec cp {} /tmp/lsw-builds/previous/lsw \;
+
+        env:
+          CGO_ENABLED: "1"
+          PWD: ${{ github.workspace }}
+
+      # ── Build current commit ──────────────────────────────────────────────
+      - name: Build current commit with GoReleaser
+        run: |
+          git checkout ${{ steps.commits.outputs.current }}
+
+          goreleaser build \
+            --snapshot \
+            --clean \
+            --single-target
+
+          mkdir -p /tmp/lsw-builds/current
+          find dist -type f -name lsw -exec cp {} /tmp/lsw-builds/current/lsw \;
+
+        env:
+          CGO_ENABLED: "1"
+          PWD: ${{ github.workspace }}
+
+      # ── Verify both binaries exist ────────────────────────────────────────
+      - name: Verify binaries
+        run: |
+          test -f /tmp/lsw-builds/previous/lsw
+          test -f /tmp/lsw-builds/current/lsw
+
+          echo "Previous binary:"
+          /tmp/lsw-builds/previous/lsw --version || true
+
+          echo "Current binary:"
+          /tmp/lsw-builds/current/lsw --version || true
+
+      # ── Build persistent third-party image BEFORE any init ────────────────
+      - name: "Build persistent third-party CI image"
+        run: |
+          THIRD_PARTY_TAG="thirdparty-image:ci"
+
+          if [ "${{ matrix.provider }}" = "docker" ]; then
+            docker build \
+              -f assets/v1/Dockerfile.ci \
+              -t "$THIRD_PARTY_TAG" \
+              .
+            docker image inspect "$THIRD_PARTY_TAG" > /dev/null
+          else
+            podman build \
+              -f assets/v1/Dockerfile.ci \
+              -t "$THIRD_PARTY_TAG" \
+              .
+            podman image inspect "$THIRD_PARTY_TAG" > /dev/null
+          fi
+
+          echo "Persistent third-party image exists: $THIRD_PARTY_TAG"
+
+      # ── Initialize using previous commit ──────────────────────────────────
+      - name: "Previous commit — init backend"
+        env:
+          _LSW_CI: "1"
+        run: |
+          /tmp/lsw-builds/previous/lsw new v1 --debug \
+            --init \
+            --provider ${{ matrix.provider }}
+
+      # ── Verify previous image exists ──────────────────────────────────────
+      - name: "Previous commit — verify image exists"
+        run: |
+          IMAGE_NAME="lsw-v1:${{ steps.commits.outputs.previous_short }}"
+
+          if [ "${{ matrix.provider }}" = "docker" ]; then
+            docker image inspect "$IMAGE_NAME" > /dev/null
+          else
+            podman image inspect "$IMAGE_NAME" > /dev/null
+          fi
+
+          echo "Verified image exists: $IMAGE_NAME"
+
+      # ── Verify third-party image survived previous init ───────────────────
+      - name: "Previous commit — verify third-party image persisted"
+        run: |
+          THIRD_PARTY_TAG="thirdparty-image:ci"
+
+          if [ "${{ matrix.provider }}" = "docker" ]; then
+            docker image inspect "$THIRD_PARTY_TAG" > /dev/null
+          else
+            podman image inspect "$THIRD_PARTY_TAG" > /dev/null
+          fi
+
+          echo "Third-party image still exists."
+
+      # ── Initialize using current commit ───────────────────────────────────
+      - name: "Current commit — init backend"
+        env:
+          _LSW_CI: "1"
+        run: |
+          /tmp/lsw-builds/current/lsw new v1 --debug \
+            --init \
+            --provider ${{ matrix.provider }}
+
+      # ── Verify current image exists ───────────────────────────────────────
+      - name: "Current commit — verify image exists"
+        run: |
+          CURRENT_IMAGE="lsw-v1:${{ steps.commits.outputs.current_short }}"
+
+          if [ "${{ matrix.provider }}" = "docker" ]; then
+            docker image inspect "$CURRENT_IMAGE" > /dev/null
+          else
+            podman image inspect "$CURRENT_IMAGE" > /dev/null
+          fi
+
+          echo "Verified current image exists: $CURRENT_IMAGE"
+
+      # ── Verify previous image was deleted ─────────────────────────────────
+      - name: "Current commit — verify previous image removed"
+        run: |
+          PREVIOUS_IMAGE="lsw-v1:${{ steps.commits.outputs.previous_short }}"
+
+          if [ "${{ matrix.provider }}" = "docker" ]; then
+            if docker image inspect "$PREVIOUS_IMAGE" > /dev/null 2>&1; then
+              echo "ERROR: previous image still exists"
+              exit 1
+            fi
+          else
+            if podman image inspect "$PREVIOUS_IMAGE" > /dev/null 2>&1; then
+              echo "ERROR: previous image still exists"
+              exit 1
+            fi
+          fi
+
+          echo "Previous image correctly removed."
+
+      # ── Verify third-party image survived current init ────────────────────
+      - name: "Current commit — verify third-party image persisted"
+        run: |
+          THIRD_PARTY_TAG="thirdparty-image:ci"
+
+          if [ "${{ matrix.provider }}" = "docker" ]; then
+            docker image inspect "$THIRD_PARTY_TAG" > /dev/null
+          else
+            podman image inspect "$THIRD_PARTY_TAG" > /dev/null
+          fi
+
+          echo "Third-party image still exists after second init."
