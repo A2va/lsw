@@ -134,20 +134,23 @@ func pruneOldImages(c *client.Client) error {
 		isCurrentVersion := false
 
 		tags := image.RepoTags
-		for _, tag := range tags {
-			if tag == "<none>:<none>" {
+		for _, fullTag := range tags {
+			if fullTag == "<none>:<none>" {
 				continue
 			}
 
-			if tag == currentTag {
-				isCurrentVersion = true
+			// Remove the registry prefix (e.g., "localhost/lsw-v1:abc" -> "lsw-v1:abc")
+			normalizedTag := fullTag
+			if lastSlash := strings.LastIndex(fullTag, "/"); lastSlash != -1 {
+				normalizedTag = fullTag[lastSlash+1:]
 			}
 
 			// Check if it is an lsw image but NOT the current one
-			if strings.HasPrefix(tag, "lsw-v1:") && tag != currentTag {
+			if normalizedTag == currentTag {
+				isCurrentVersion = true
+			} else if strings.HasPrefix(normalizedTag, "lsw-v1:") {
 				isOldVersion = true
 			}
-
 		}
 
 		if isOldVersion && !isCurrentVersion {
