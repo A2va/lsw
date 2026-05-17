@@ -79,7 +79,17 @@ func Shell(bottle *config.Bottle, cmd string) error {
 
 	defer func() {
 		t := true
-		containers.Stop(c, containerName, &containers.StopOptions{})
+		stopOpts := &containers.StopOptions{}
+
+		// If the context was canceled (e.g., user pressed Ctrl-C),
+		// we tell Podman to kill the container instantly (0 timeout)
+		// instead of waiting the default 10 seconds.
+		if ctx.Err() != nil {
+			zero := uint(0)
+			stopOpts.Timeout = &zero
+		}
+
+		containers.Stop(c, containerName, stopOpts)
 		containers.Remove(c, containerName, &containers.RemoveOptions{Force: &t})
 	}()
 

@@ -1,15 +1,21 @@
 package v2
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
+	"syscall"
 
 	"charm.land/log/v2"
 	"github.com/A2va/lsw/pkg/config"
 )
 
 func Shell(bottle *config.Bottle, cmd string) error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
 	// TODO Maybe start if stopped
 
 	c, err := incusClient()
@@ -72,11 +78,18 @@ func Shell(bottle *config.Bottle, cmd string) error {
 		remoteCmd = fmt.Sprintf("cd /d %s & cmd /k", mountPoint.volumeLetter)
 	}
 
-	command := exec.Command("ssh", "-t", username+"@"+idAddr,
+	command := exec.CommandContext(ctx, "ssh", "-t", username+"@"+idAddr,
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "StrictHostKeyChecking=no",
 		remoteCmd,
 	)
+
+	// Ask exec to send a polite SIGTERM on context cancellation
+	// rather than a harsh SIGKILL. This allows SSH to properly reset the user's
+	// terminal so the cursor doesn't turn invisible upon exit.
+	command.Cancel = func() error {
+		return command.Process.Signal(syscall.SIGTERM)
+	}
 
 	command.Stdout = os.Stdout
 	// cmd.Stderr = os.Stderr
@@ -97,6 +110,9 @@ func Shell(bottle *config.Bottle, cmd string) error {
 	)
 
 	if err := command.Run(); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return fmt.Errorf("failed to exec ssh: %w", err)
 	}
 

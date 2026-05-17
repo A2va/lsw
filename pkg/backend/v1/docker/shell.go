@@ -98,7 +98,17 @@ func Shell(bottle *config.Bottle, cmd string) error {
 		// Use a fresh context for cleanup to ensure it runs even if a parent context was cancelled.
 		cleanupCtx := context.Background()
 
-		_, err = c.ContainerStop(cleanupCtx, containerName, client.ContainerStopOptions{})
+		stopOpts := client.ContainerStopOptions{}
+
+		// If the context was canceled (e.g., user pressed Ctrl-C),
+		// we tell Docker to kill the container instantly (0 timeout)
+		// instead of waiting the default 10 seconds.
+		if ctx.Err() != nil {
+			zero := 0 // Docker uses an *int for Timeout
+			stopOpts.Timeout = &zero
+		}
+
+		_, err = c.ContainerStop(cleanupCtx, containerName, stopOpts)
 		_, err = c.ContainerRemove(cleanupCtx, containerName, client.ContainerRemoveOptions{Force: true})
 	}()
 
