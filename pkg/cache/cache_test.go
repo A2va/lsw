@@ -134,7 +134,7 @@ func TestCacheWorkflow(t *testing.T) {
 	t.Run("2_Upgrade_To_V2", func(t *testing.T) {
 		// Even though V1 exists, adding V2 should take precedence
 		if err := Add(targetName, v2URL); err != nil {
-			t.Fatalf("AddFile failed: %v", err)
+			t.Fatalf("Add failed: %v", err)
 		}
 
 		item, err := Get(targetName)
@@ -148,7 +148,7 @@ func TestCacheWorkflow(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	t.Run("3_Downgrade_To_V1", func(t *testing.T) {
-		// We re-add V1. It exists in cache, but AddFile MUST 'touch' it
+		// We re-add V1. It exists in cache, but Add MUST touch it
 		// so it becomes newer than V2.
 		if err := Add(targetName, v1URL); err != nil {
 			t.Fatalf("Add failed: %v", err)
@@ -205,10 +205,10 @@ func TestAddFile_Archive(t *testing.T) {
 	}
 
 	// Check Directory Name Format
-	// Expected: OpenSSH-<hash>
+	// Expected: OpenSSH:<hash>
 	base := filepath.Base(item.Path)
-	if len(base) < 12 || base[:8] != "OpenSSH-" { // OpenSSH- + 10 chars hash
-		t.Errorf("Directory name format wrong. Expected OpenSSH-HASH..., got: %s", base)
+	if len(base) != len("OpenSSH:")+10 || base[:8] != "OpenSSH:" {
+		t.Errorf("Directory name format wrong. Expected OpenSSH:HASH, got: %s", base)
 	}
 }
 

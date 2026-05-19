@@ -126,12 +126,12 @@ func createSoftwareISO(filesInIso []string) error {
 
 	// Construct the URL that would be used if we generated it
 	// We need this to calculate the expected file hash in the cache
-	tmpFilename := fmt.Sprintf("software-%s.iso", stateHash)
+	tmpFilename := fmt.Sprintf("software.iso:%s", stateHash)
 	tmpIsoPath := filepath.Join(cacheDir, "tmp", tmpFilename)
 	expectedUrl := "file://" + tmpIsoPath
 
-	// Calculate the hash that AddFile adds to the filename
-	// The file on disk will look like: software-<UrlHash>.iso
+	// Calculate the hash that cache.Add adds to the filename.
+	// The file on disk will look like: software.iso:<UrlHash>
 	expectedUrlHash := cache.Hash(expectedUrl)
 
 	log.Debug("generated url and hash", "url", expectedUrl, "hash", expectedUrlHash)
@@ -152,9 +152,8 @@ func createSoftwareISO(filesInIso []string) error {
 		}
 	}
 
-	// File exists. But is it the RIGHT version?
-	// We check if the existing filename contains our expected hash.
-	if !strings.Contains(filepath.Base(existingPath.Path), expectedUrlHash) {
+	// File exists. But is it the right version?
+	if !strings.HasSuffix(filepath.Base(existingPath.Path), ":"+expectedUrlHash) {
 		shouldGenerate = true
 	}
 

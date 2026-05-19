@@ -62,18 +62,18 @@ func isValidURI(rawURL string) bool {
 	return u.Host != ""
 }
 
-// Helper to extract "image.iso" from "image-a1b2c.iso"
-func stripHash(hashedFilename string) string {
-	ext := filepath.Ext(hashedFilename)
-	nameNoExt := strings.TrimSuffix(hashedFilename, ext)
+func formatCacheName(filename, hash string) string {
+	return filename + ":" + hash
+}
 
-	// Find the separator dash introduced by AddFile
-	lastHyphen := strings.LastIndex(nameNoExt, "-")
-	if lastHyphen == -1 {
-		return hashedFilename // Fallback, shouldn't happen with our regex
+// Helper to extract "image.iso" from "image.iso:a1b2c3d4e5"
+func stripHash(hashedFilename string) string {
+	name, _, ok := strings.Cut(hashedFilename, ":")
+	if !ok {
+		return hashedFilename
 	}
 
-	return nameNoExt[:lastHyphen] + ext
+	return name
 }
 
 func getStoreDir() (string, error) {
@@ -109,7 +109,7 @@ func getFiles() ([]string, error) {
 			return nil
 		}
 
-		// If it matches our artifact pattern (name-hash), we treat it as an atomic item.
+		// If it matches our artifact pattern (name:hash), we treat it as an atomic item.
 		// If it's a directory, we add it, but we SKIP walking inside it.
 		// Detect Artifacts (Files OR Directories)
 		if artifactReg.MatchString(d.Name()) {

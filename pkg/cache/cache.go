@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"charm.land/log/v2"
@@ -20,11 +19,11 @@ import (
 // CachedFile represents a retrieved item from the cache
 type CachedFile struct {
 	// Path is the absolute path on disk
-	// e.g. /home/user/.cache/lsw/downloads/subdir/nginx-a1b2c.tar.gz
+	// e.g. /home/user/.cache/lsw/store/subdir/nginx.tar.gz:a1b2c3d4e5
 	Path string
 
 	// RelPath is the path relative to the downloads directory
-	// e.g. subdir/nginx-a1b2c.tar.gz
+	// e.g. subdir/nginx.tar.gz:a1b2c3d4e5
 	RelPath string
 }
 
@@ -33,12 +32,12 @@ var ErrFileNotFound = errors.New("file not found in cache")
 var fileListCache []string
 var resolvedPathCache = make(map[string]CachedFile)
 
-// regex to identify artifacts: ends with hyphen + 10 hex chars + optional extension
-// e.g. "image-a1b2c3d4e5.iso" or "OpenSSH-a1b2c3d4e5"
-var artifactReg = regexp.MustCompile(`-[0-9a-f]{10}(\.[a-zA-Z0-9]+)?$`)
+// regex to identify artifacts: ends with colon + 10 hex chars
+// e.g. "image.iso:a1b2c3d4e5" or "OpenSSH:a1b2c3d4e5"
+var artifactReg = regexp.MustCompile(`:[0-9a-f]{10}$`)
 
 // Name returns the real filename on disk
-// e.g. nginx-a1b2c.tar.gz
+// e.g. nginx.tar.gz:a1b2c3d4e5
 func (c CachedFile) Name() string {
 	return filepath.Base(c.Path)
 }
@@ -97,12 +96,11 @@ func Add(name string, url string) error {
 	log.Info("add file to cache", "name", name, "url", url)
 
 	ext := filepath.Ext(name)
-	base := strings.TrimSuffix(filepath.Base(name), ext)
-	filename := fmt.Sprintf("%s-%s%s", base, Hash(url), ext)
+	filename := formatCacheName(filepath.Base(name), Hash(url))
 
 	// Maintain subdirectory structure
 	dst := filepath.Join(stDir, filepath.Dir(name), filename)
-	log.Debug("", "filename", filename, "base", base, "ext", ext, "dst", dst)
+	log.Debug("resolved cache destination", "filename", filename, "ext", ext, "dst", dst)
 
 	// TODO Investigate possible needed for case when switching a file to an url
 	// But realistically the url will change as well
@@ -178,13 +176,9 @@ func Get(requestedPath string) (CachedFile, error) {
 
 	// Parse the input path (e.g. "subdir/file.txt")
 	reqDir := filepath.Dir(requestedPath)
-	reqExt := filepath.Ext(requestedPath)
-	reqBase := strings.TrimSuffix(filepath.Base(requestedPath), reqExt)
+	reqName := filepath.Base(requestedPath)
 
-	// We look for files starting with "file-" to account for the hash suffix
-	reqPrefix := reqBase + "-"
-
-	log.Debug("", "reqDir", reqDir, "reqExt", reqExt, "reqBase", reqBase, "reqPrefix", reqPrefix)
+	log.Debug("resolved cache lookup", "reqDir", reqDir, "reqName", reqName)
 
 	var newestPath string
 	var newestTime time.Time
@@ -196,15 +190,8 @@ func Get(requestedPath string) (CachedFile, error) {
 			continue
 		}
 
-		// Filter by extension (only if requested path HAD an extension)
-		// This allows GetFile("OpenSSH") to match "OpenSSH-hash" (dir)
-		if reqExt != "" && filepath.Ext(relPath) != reqExt {
-			continue
-		}
-
-		// Filter by Filename prefix
-		baseName := filepath.Base(relPath)
-		if !strings.HasPrefix(baseName, reqPrefix) {
+		// Filter by filename after removing the cache hash suffix.
+		if stripHash(filepath.Base(relPath)) != reqName {
 			continue
 		}
 
@@ -279,7 +266,7 @@ type cachedFile struct {
 }
 
 // Prune removes old versions of files, keeping only the 'keep' most recent versions.
-// accurate grouping depends on the naming convention: name-hash.ext
+// accurate grouping depends on the naming convention: name.ext:hash
 func Prune(keep int, maxAgeDays int) error {
 	if keep < 1 {
 		return fmt.Errorf("keep must be at least 1")
@@ -307,8 +294,8 @@ func Prune(keep int, maxAgeDays int) error {
 			continue
 		}
 
-		// Logic to reconstruct the "original" name from "name-hash.ext"
-		// "subdir/image-a1b2c.iso" -> dir: "subdir", file: "image-a1b2c.iso"
+		// Logic to reconstruct the "original" name from "name.ext:hash"
+		// "subdir/image.iso:a1b2c3d4e5" -> dir: "subdir", file: "image.iso"
 		dir := filepath.Dir(relPath)
 		originalName := stripHash(filepath.Base(relPath))
 
