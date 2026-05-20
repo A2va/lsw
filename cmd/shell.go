@@ -33,7 +33,7 @@ func runShellCommand(cmd *cobra.Command, args []string) error {
 func shellCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "shell [bottle-name]",
-		Aliases:       []string{"s"},
+		Aliases:       []string{"s", "enter"},
 		Short:         "Enter an interactive shell in a Windows bottle",
 		Long:          `Specify a bottle name, or use the default bottle if configured. Only one current working directory can be mounted on a instance.y`,
 		SilenceUsage:  true,

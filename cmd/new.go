@@ -165,7 +165,7 @@ Windows compatibility but uses more resources than v1.`,
 func newCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "new",
-		Aliases:       []string{"n"},
+		Aliases:       []string{"n", "create"},
 		Short:         "Create a new Windows bottle",
 		SilenceUsage:  true,
 		SilenceErrors: true,
