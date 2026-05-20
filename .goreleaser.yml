@@ -3,7 +3,8 @@ version: 2
 before:
   hooks:
     - go mod download
-    - go build -o .bin/errtrace braces.dev/errtrace/cmd/errtrace
+    - mkdir -p .bin
+    - env GOBIN={{ .Env.PWD }}/.bin go install braces.dev/errtrace/cmd/errtrace
 builds:
   - env:
       - CGO_ENABLED=1
