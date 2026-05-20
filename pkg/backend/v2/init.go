@@ -56,9 +56,15 @@ func downloadIncusAgent() error {
 	}
 
 	incusVersion := server.Environment.ServerVersion
+	tagVersion := incusVersion
+	if strings.Count(tagVersion, ".") == 1 {
+		tagVersion += ".0"
+	}
+
+	log.Debug("incus version", "v", incusVersion)
 
 	// Make sure that incus agent version match the system one
-	url := fmt.Sprintf("https://github.com/lxc/incus/releases/download/v%s/bin.windows.incus-agent.x86_64.exe", incusVersion)
+	url := fmt.Sprintf("https://github.com/lxc/incus/releases/download/v%s/bin.windows.incus-agent.x86_64.exe", tagVersion)
 	return cache.Add("v2/incus-agent.exe", url)
 }
 
