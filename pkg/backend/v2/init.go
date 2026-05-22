@@ -97,6 +97,11 @@ func downloadVsRedistribuable() error {
 	return cache.Add("v2/vc_redist.exe", url)
 }
 
+func downloadWinget() error {
+	const url = "https://github.com/microsoft/winget-cli/releases/download/v1.28.240/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+	return cache.Add("v2/winget.msixbundle", url)
+}
+
 func downloadWindowsIso() (string, error) {
 	// Taken from massgrave
 	// https://massgrave.dev/windows-server-links#windows-server-23h2-no-gui
@@ -218,7 +223,12 @@ func Init() {
 		utils.Panic("cannot download incus agent", err)
 	}
 
-	sotfwareToPack := []string{"v2/winfsp.msi", "v2/vc_redist.exe", "v2/OpenSSH", "v2/incus-agent.exe"}
+	err = downloadWinget()
+	if err != nil {
+		utils.Panic("cannot download winget", err)
+	}
+
+	sotfwareToPack := []string{"v2/winfsp.msi", "v2/vc_redist.exe", "v2/OpenSSH", "v2/incus-agent.exe", "v2/winget.msixbundle"}
 	err = createSoftwareISO(sotfwareToPack)
 	if err != nil {
 		utils.Panic("cannot create software ISO", err)

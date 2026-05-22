@@ -222,6 +222,16 @@ function Install-IncusAgent {
     }
 }
 
+function Install-Winget {
+    # Write-Log -Message "Starting Winget installation..."
+    # $drive = Get-DriveByFile "winget.msixbundle "
+    # if (-not $drive) {
+    #     Write-Log -Message "winget installer not found. Skipping." -Level WARNING
+    #     return
+    # }
+    # Add-AppPackage -path "$($drive):\winget.msixbundle"
+}
+
 try {
     # Initialize Log File
     if (-not (Test-Path $LogFile)) { New-Item -Path $LogFile -ItemType File -Force | Out-Null }
@@ -232,6 +242,7 @@ try {
     Install-WinFSP
     Install-VirtioTools
     Install-OpenSSH
+    Install-Winget
 
     # Configure Services
     Write-Log -Message "Configuring Incus-Agent service..."
