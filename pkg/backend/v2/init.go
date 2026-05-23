@@ -114,7 +114,7 @@ func createSoftwareISO(filesInIso []string) error {
 		if err != nil {
 			return err
 		}
-		cachedFiles = append(cachedFiles, item.Path)
+		cachedFiles = append(cachedFiles, item.RealPath)
 	}
 
 	cacheDir, err := cache.GetCacheDir()
@@ -138,7 +138,7 @@ func createSoftwareISO(filesInIso []string) error {
 
 	tmpDir := path.Join(cacheDir, "tmp", "software")
 
-	targetName := "iso/software.iso"
+	targetName := "v2/software.iso"
 	existingPath, err := cache.Get(targetName)
 
 	shouldGenerate := false
@@ -153,7 +153,7 @@ func createSoftwareISO(filesInIso []string) error {
 	}
 
 	// File exists. But is it the right version?
-	if !strings.HasSuffix(filepath.Base(existingPath.Path), ":"+expectedUrlHash) {
+	if !strings.HasSuffix(filepath.Base(existingPath.RealPath), ":"+expectedUrlHash) {
 		shouldGenerate = true
 	}
 

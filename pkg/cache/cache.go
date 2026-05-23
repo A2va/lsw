@@ -19,12 +19,20 @@ import (
 // CachedFile represents a retrieved item from the cache
 type CachedFile struct {
 	// Path is the absolute path on disk
-	// e.g. /home/user/.cache/lsw/store/subdir/nginx.tar.gz:a1b2c3d4e5
+	// e.g. /home/user/.cache/lsw/store/subdir/nginx.tar.gz
 	Path string
 
 	// RelPath is the path relative to the downloads directory
-	// e.g. subdir/nginx.tar.gz:a1b2c3d4e5
+	// e.g. subdir/nginx.tar.gz
 	RelPath string
+
+	// RealPath is the absolute path to the hashed cache artifact.
+	// e.g. /home/user/.cache/lsw/store/subdir/nginx.tar.gz:a1b2c3d4e5
+	RealPath string
+
+	// RealRelPath is the hashed artifact path relative to the downloads directory.
+	// e.g. subdir/nginx.tar.gz:a1b2c3d4e5
+	RealRelPath string
 }
 
 var ErrFileNotFound = errors.New("file not found in cache")
@@ -36,8 +44,8 @@ var resolvedPathCache = make(map[string]CachedFile)
 // e.g. "image.iso:a1b2c3d4e5" or "OpenSSH:a1b2c3d4e5"
 var artifactReg = regexp.MustCompile(`:[0-9a-f]{10}$`)
 
-// Name returns the real filename on disk
-// e.g. nginx.tar.gz:a1b2c3d4e5
+// Name returns the stable filename on disk
+// e.g. nginx.tar.gz
 func (c CachedFile) Name() string {
 	return filepath.Base(c.Path)
 }
@@ -100,6 +108,7 @@ func Add(name string, url string) error {
 
 	// Maintain subdirectory structure
 	dst := filepath.Join(stDir, filepath.Dir(name), filename)
+	linkPath := filepath.Join(stDir, name)
 	log.Debug("resolved cache destination", "filename", filename, "ext", ext, "dst", dst)
 
 	// TODO Investigate possible needed for case when switching a file to an url
@@ -148,6 +157,10 @@ func Add(name string, url string) error {
 		return err
 	}
 
+	if err := retargetSymlink(linkPath, filepath.Base(dst)); err != nil {
+		return err
+	}
+
 	// Invalidate the cache if a new file was added
 	fileListCache = nil
 	delete(resolvedPathCache, name)
@@ -163,18 +176,83 @@ func Get(requestedPath string) (CachedFile, error) {
 		return item, nil
 	}
 
-	// Get list of all files in cache
-	files, err := getFiles()
-	if err != nil {
-		return CachedFile{}, err
-	}
-
 	stDir, err := getStoreDir()
 	if err != nil {
 		return CachedFile{}, err
 	}
 
-	// Parse the input path (e.g. "subdir/file.txt")
+	linkPath := filepath.Join(stDir, requestedPath)
+	if item, err := cachedFileFromSymlink(stDir, requestedPath, linkPath); err == nil {
+		resolvedPathCache[requestedPath] = item
+		return item, nil
+	}
+
+	realPath, newestTime, err := newestArtifact(stDir, requestedPath)
+	if err != nil {
+		return CachedFile{}, err
+	}
+
+	log.Info("found file", "path", realPath, "time", newestTime)
+
+	if err := retargetSymlink(linkPath, filepath.Base(realPath)); err != nil {
+		return CachedFile{}, err
+	}
+
+	result, err := cachedFileFromSymlink(stDir, requestedPath, linkPath)
+	if err != nil {
+		return CachedFile{}, err
+	}
+
+	resolvedPathCache[requestedPath] = result
+	return result, nil
+}
+
+func cachedFileFromSymlink(stDir, requestedPath, linkPath string) (CachedFile, error) {
+	linkInfo, err := os.Lstat(linkPath)
+	if err != nil {
+		return CachedFile{}, err
+	}
+	if linkInfo.Mode()&os.ModeSymlink == 0 {
+		return CachedFile{}, fmt.Errorf("%w: %s", ErrFileNotFound, requestedPath)
+	}
+
+	info, err := os.Stat(linkPath)
+	if err != nil {
+		return CachedFile{}, err
+	}
+
+	realPath, err := filepath.EvalSymlinks(linkPath)
+	if err != nil {
+		return CachedFile{}, err
+	}
+
+	// "Touch" the winner so it isn't cleaned up by garbage collection
+	now := time.Now()
+	if err := os.Chtimes(realPath, now, now); err != nil {
+		log.Warn("failed to touch cached file", "path", realPath, "err", err)
+	}
+
+	realRelPath, err := filepath.Rel(stDir, realPath)
+	if err != nil {
+		return CachedFile{}, err
+	}
+
+	log.Info("found file", "path", linkPath, "target", realPath, "time", info.ModTime())
+
+	return CachedFile{
+		Path:        linkPath,
+		RelPath:     requestedPath,
+		RealPath:    realPath,
+		RealRelPath: realRelPath,
+	}, nil
+}
+
+func newestArtifact(stDir, requestedPath string) (string, time.Time, error) {
+	files, err := getFiles()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
 	reqDir := filepath.Dir(requestedPath)
 	reqName := filepath.Base(requestedPath)
 
@@ -185,24 +263,20 @@ func Get(requestedPath string) (CachedFile, error) {
 	var found bool
 
 	for _, relPath := range files {
-		// Filter by Directory
 		if filepath.Dir(relPath) != reqDir {
 			continue
 		}
 
-		// Filter by filename after removing the cache hash suffix.
 		if stripHash(filepath.Base(relPath)) != reqName {
 			continue
 		}
 
-		// Check the file stats
 		absPath := filepath.Join(stDir, relPath)
 		info, err := os.Stat(absPath)
 		if err != nil {
 			continue
 		}
 
-		// Update the tracker if this file is newer
 		if !found || info.ModTime().After(newestTime) {
 			newestPath = absPath
 			newestTime = info.ModTime()
@@ -211,30 +285,10 @@ func Get(requestedPath string) (CachedFile, error) {
 	}
 
 	if !found {
-		return CachedFile{}, fmt.Errorf("%w: %s", ErrFileNotFound, requestedPath)
+		return "", time.Time{}, fmt.Errorf("%w: %s", ErrFileNotFound, requestedPath)
 	}
 
-	log.Info("found file", "path", newestPath, "time", newestTime)
-
-	// "Touch" the winner so it isn't cleaned up by garbage collection
-	now := time.Now()
-	if err := os.Chtimes(newestPath, now, now); err != nil {
-		// Even if we fail to touch it (permissions?), we should still return the file
-		// Log error if you have a logger
-	}
-
-	relPath, err := filepath.Rel(stDir, newestPath)
-	if err != nil {
-		return CachedFile{}, err
-	}
-
-	result := CachedFile{
-		Path:    newestPath,
-		RelPath: relPath,
-	}
-
-	resolvedPathCache[requestedPath] = result
-	return result, nil
+	return newestPath, newestTime, nil
 }
 
 func IsNotCached(err error) bool {

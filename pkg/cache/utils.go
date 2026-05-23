@@ -66,6 +66,23 @@ func formatCacheName(filename, hash string) string {
 	return filename + ":" + hash
 }
 
+func retargetSymlink(linkPath, target string) error {
+	if err := os.MkdirAll(filepath.Dir(linkPath), 0755); err != nil {
+		return err
+	}
+
+	tmpLink := linkPath + ".tmp-link"
+	if err := os.Remove(tmpLink); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	if err := os.Symlink(target, tmpLink); err != nil {
+		return err
+	}
+
+	return os.Rename(tmpLink, linkPath)
+}
+
 // Helper to extract "image.iso" from "image.iso:a1b2c3d4e5"
 func stripHash(hashedFilename string) string {
 	name, _, ok := strings.Cut(hashedFilename, ":")

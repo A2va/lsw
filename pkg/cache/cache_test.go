@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -37,6 +38,14 @@ func TestBasic(t *testing.T) {
 	}
 
 	checkContent(t, item.Path, "CONTENT")
+
+	if strings.Contains(filepath.Base(item.Path), ":") {
+		t.Fatalf("Get returned hashed path %q, expected stable symlink path", item.Path)
+	}
+
+	if !strings.Contains(filepath.Base(item.RealPath), ":") {
+		t.Fatalf("Get returned unhashed real path %q, expected hashed artifact path", item.RealPath)
+	}
 }
 
 func TestPrune(t *testing.T) {
@@ -205,8 +214,21 @@ func TestAddFile_Archive(t *testing.T) {
 	}
 
 	// Check Directory Name Format
-	// Expected: OpenSSH:<hash>
-	base := filepath.Base(item.Path)
+	// Expected stable symlink: OpenSSH
+	if base := filepath.Base(item.Path); base != "OpenSSH" {
+		t.Errorf("Directory symlink name wrong. Expected OpenSSH, got: %s", base)
+	}
+
+	linkInfo, err := os.Lstat(item.Path)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
+	if linkInfo.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("Expected Get to return a symlink path, got mode: %s", linkInfo.Mode())
+	}
+
+	// Expected hashed artifact: OpenSSH:<hash>
+	base := filepath.Base(item.RealPath)
 	if len(base) != len("OpenSSH:")+10 || base[:8] != "OpenSSH:" {
 		t.Errorf("Directory name format wrong. Expected OpenSSH:HASH, got: %s", base)
 	}
