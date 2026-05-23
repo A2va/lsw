@@ -59,10 +59,23 @@ function Install-VirtioTools {
         }
 
         Write-Log -Message "Found VirtIO ISO on $drive. Trusting certificates..."
-        $certFile = Get-ChildItem -Path "$($drive):\cert\*.cat" -Recurse | Select-Object -First 1
+        $certFile = Get-ChildItem -Path "$($drive):\cert\*.cer" -Recurse | Select-Object -First 1
         if ($certFile) {
-            certutil -addstore "TrustedPublisher" $certFile.FullName
-            Write-Log -Message "Certificate trusted: $($certFile.Name)"
+            Write-Log -Message "Found certificate: $($certFile.FullName)"
+
+            $p = Start-Process certutil.exe `
+                -ArgumentList @(
+                    "-addstore",
+                    "TrustedPublisher",
+                    $certFile.FullName
+                ) `
+                -Wait -PassThru
+
+            if ($p.ExitCode -eq 0) {
+                Write-Log -Message "Certificate trusted: $($certFile.Name)"
+            } else {
+                Write-Log -Message "certutil failed with exit code $($p.ExitCode)" -Level ERROR
+            }
         } else {
             Write-Log -Message "No certificate found to trust." -Level WARNING
         }
