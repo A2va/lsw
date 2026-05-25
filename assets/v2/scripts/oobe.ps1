@@ -232,6 +232,20 @@ function Install-Winget {
     # Add-AppPackage -path "$($drive):\winget.msixbundle"
 }
 
+function Install-Chocolatey {
+    Write-Log -Message "Starting Chocolatey installation..."
+    $drive = Get-DriveByFile "chocolatey.msi"
+    if (-not $drive) {
+        Write-Log -Message "chocolatey installer not found. Skipping." -Level WARNING
+        return
+    }
+    $msiPath = "$drive`:\chocolatey.msi"
+
+    Write-Log -Message "Executing Chocolatey MSI installer..."
+    Start-Process "msiexec.exe" -ArgumentList "/i", "`"$msiPath`"", "/qn", "/norestart" -Wait
+    Write-Log -Message "Chocolatey installation complete."
+}
+
 try {
     # Initialize Log File
     if (-not (Test-Path $LogFile)) { New-Item -Path $LogFile -ItemType File -Force | Out-Null }
@@ -243,6 +257,7 @@ try {
     Install-VirtioTools
     Install-OpenSSH
     Install-Winget
+    Install-Chocolatey
 
     # Configure Services
     Write-Log -Message "Configuring Incus-Agent service..."

@@ -102,6 +102,11 @@ func downloadWinget() error {
 	return cache.Add("v2/winget.msixbundle", url)
 }
 
+func downloadChocolatey() error {
+	const url = "https://github.com/chocolatey/choco/releases/download/2.7.2/chocolatey-2.7.2.0.msi"
+	return cache.Add("v2/chocolatey.msi", url)
+}
+
 func downloadWindowsIso() (string, error) {
 	// Taken from massgrave
 	// https://massgrave.dev/windows-server-links#windows-server-23h2-no-gui
@@ -228,7 +233,12 @@ func Init() {
 		utils.Panic("cannot download winget", err)
 	}
 
-	sotfwareToPack := []string{"v2/winfsp.msi", "v2/vc_redist.exe", "v2/OpenSSH", "v2/incus-agent.exe", "v2/winget.msixbundle"}
+	err = downloadChocolatey()
+	if err != nil {
+		utils.Panic("cannot download chocolatey", err)
+	}
+
+	sotfwareToPack := []string{"v2/winfsp.msi", "v2/vc_redist.exe", "v2/OpenSSH", "v2/incus-agent.exe", "v2/winget.msixbundle", "v2/chocolatey.msi"}
 	err = createSoftwareISO(sotfwareToPack)
 	if err != nil {
 		utils.Panic("cannot create software ISO", err)
