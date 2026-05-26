@@ -123,6 +123,14 @@ function Install-VirtioTools {
     }
 
     Invoke-CommandWithLogging -FilePath "$($drive):\virtio-win-guest-tools.exe" -ArgumentList "/passive", "/norestart" -Name "VirtIO Guest Tools" -LogPath "C:\virtio.log"
+    $viosockInf = Get-ChildItem -Path "$($drive):\viosock\*\amd64\viosock.inf" | Sort-Object FullName -Descending | Select-Object -First 1
+    if ($viosockInf) {
+        Write-Log -Message "Found viosock driver at $($viosockInf.FullName). Installing..."
+        Invoke-CommandWithLogging -FilePath "pnputil.exe" -ArgumentList "/add-driver", "`"$($viosockInf.FullName)`"", "/install" -Name "VirtIO Vsock Driver" -LogPath "C:\viosock.log"
+    } else {
+        Write-Log -Message "Could not find viosock.inf on VirtIO drive." -Level WARNING
+    }
+
     Start-Sleep -Seconds 10
 }
 
