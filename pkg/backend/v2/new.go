@@ -432,7 +432,7 @@ func New(arch string, args NewV2Argument) error {
 	log.Info("finishing setup and scripts")
 	utils.ReportProgress("Finishing Setup & Scripts...", utils.ProgressUpdate)
 
-	ev = timeout(q, 5*time.Minute)
+	ev = timeout(q, 7*time.Minute)
 	// Windows have taken more than 4 minutes for this step, there is something wrong
 	if ev != "instance-shutdown" {
 		utils.ReportProgress("Failed to shutdown at end of install", utils.ProgressError)
@@ -452,7 +452,7 @@ func New(arch string, args NewV2Argument) error {
 		Password: args.Password,
 	})
 
-	err = removeDevices(c, args.Name, []string{"software", "autounattend", "virtio"})
+	err = removeDevices(c, args.Name, []string{"software", "autounattend", "virtio", "agent"})
 	if err != nil {
 		utils.ReportProgress("Failed to remove installation devices", utils.ProgressError)
 		utils.Panic("failed to remove installation devices", err)

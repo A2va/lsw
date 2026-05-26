@@ -182,20 +182,67 @@ function Install-WinFSP {
 }
 
 function Install-IncusAgent {
-    $drive = Get-DriveByFile "incus-agent-setup.ps1"
-    if (-not $drive) { return }
+    try {
+        Write-Log -Message "Starting native Incus Agent installation..."
 
-    if (-not (Test-Path "$($drive):\incus-agent.exe")) {
-        $agentDrive = Get-DriveByFile "incus-agent.exe"
-        if (-not $agentDrive) { return }
+        $dataFolder = "C:\ProgramData\Incus-Agent"
+        $agentExecutable = "incus-agent.exe"
+        $serviceName = "Incus-Agent"
 
-        New-Item "C:\Program Files\Incus-Agent", "C:\ProgramData\Incus-Agent" -ItemType Directory -Force | Out-Null
-        Copy-Item "$($agentDrive):\incus-agent.exe" -Destination "C:\Program Files\Incus-Agent" -Force
-        Copy-Item "$($agentDrive):\incus-agent.exe" -Destination "C:\ProgramData\Incus-Agent" -Force
+        if (-not (Test-Path $dataFolder)) {
+            New-Item -ItemType Directory -Path $dataFolder -Force | Out-Null
+            Write-Log -Message "Created directory $dataFolder"
+        }
+
+        # Find the config drive containing the certificates
+        $configDrive = Get-Volume | Where-Object FileSystemLabel -eq "incus-agent" | Select-Object -First 1
+        if (-not $configDrive) {
+            Write-Log -Message "Incus configuration drive not found. Aborting Incus Agent install." -Level WARNING
+            return
+        }
+        $driveLetter = $configDrive.DriveLetter
+
+        # Locate incus-agent.exe (on agent drive or software iso)
+        $exePath = "$($driveLetter):\$agentExecutable"
+        if (-not (Test-Path $exePath)) {
+            $agentDrive = Get-DriveByFile $agentExecutable
+            if ($agentDrive) {
+                $exePath = "$($agentDrive):\$agentExecutable"
+            } else {
+                Write-Log -Message "incus-agent.exe not found on any drive. Aborting." -Level WARNING
+                return
+            }
+        }
+
+        # Copy Executable and Certificates directly to ProgramData
+        Write-Log -Message "Copying Incus Agent and certificates to $dataFolder..."
+        Copy-Item $exePath -Destination "$dataFolder\$agentExecutable" -Force
+        Copy-Item "$($driveLetter):\*.crt" -Destination $dataFolder -Force
+        Copy-Item "$($driveLetter):\*.key" -Destination $dataFolder -Force
+
+        # Open Firewall
+        if (-not (Get-NetFirewallRule -Name $serviceName -ErrorAction SilentlyContinue)) {
+            New-NetFirewallRule -Name $serviceName -DisplayName "Incus Agent Service" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8443 | Out-Null
+            Write-Log -Message "Created Firewall rule for port 8443."
+        }
+
+        # Register Windows Service Natively
+        $serviceCommand = "`"$dataFolder\$agentExecutable`" --service --secrets-location `"$dataFolder`""
+
+        if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) {
+            New-Service -Name $serviceName -BinaryPathName $serviceCommand -DisplayName "Incus Guest Agent" -Description "Secure communication tunnel for Incus" -StartupType Automatic | Out-Null
+            Write-Log -Message "Created $serviceName Windows Service."
+        } else {
+            # Update it just in case an older version was lingering
+            Set-Service -Name $serviceName -StartupType Automatic
+            Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\$serviceName" -Name "ImagePath" -Value $serviceCommand
+            Write-Log -Message "Updated existing $serviceName Windows Service."
+        }
+
+        Write-Log -Message "Incus Agent native installation complete."
+    } catch {
+        Write-Log -Message "Error installing Incus Agent natively: $_" -Level ERROR
     }
-
-    $args = @("-ExecutionPolicy", "Bypass", "-File", "`"$($drive):\install.ps1`"")
-    Invoke-CommandWithLogging -FilePath "powershell.exe" -ArgumentList $args -Name "Incus Agent Setup Script" -LogPath "C:\incus-agent.log"
 }
 
 function Install-Chocolatey {
