@@ -1,6 +1,6 @@
 Output tour.gif
 
-Set TypingSpeed 200ms
+Set TypingSpeed 180ms
 Set Shell "bash"
 Set FontSize 32
 Set Width 1200
@@ -18,8 +18,8 @@ Type "echo Hello world > test.txt" Enter
 Type "ls" Sleep 500ms Enter
 
 # Enter windows shell
-Type "lsw shell win" Sleep 500ms Enter
-Sleep 3
+Type "lsw shell" Sleep 500ms Enter
+Sleep 5s
 
 Type "cat test.txt" Sleep 500ms Enter
 Sleep 1s
