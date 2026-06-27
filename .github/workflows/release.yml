@@ -35,3 +35,4 @@ jobs:
         env:
           # GITHUB_TOKEN is automatically provided by GitHub Actions
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PWD: ${{ github.workspace }}
